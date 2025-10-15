@@ -6,9 +6,9 @@ import (
 )
 
 type Storage interface {
-	GetDoc(identifier domain.DocID) (io.Reader, error)
+	Get(identifier domain.DocID) (io.ReadCloser, error)
 
-	UploadDoc(identifier domain.DocID, f io.Reader) error
+	Put(identifier domain.DocID, f io.ReadCloser) error
 
-	Delete(identifier domain.DocID) error
+	Remove(identifier domain.DocID) error
 }

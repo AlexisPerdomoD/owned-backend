@@ -12,6 +12,14 @@ const (
 	FileNodeType   NodeType = "file"
 )
 
+type NodeAccess uint8
+
+const (
+	NoAccess NodeAccess = iota
+	ReadOnlyAccess
+	WriteAccess
+)
+
 type NodeID = string
 
 type Node struct {
@@ -25,6 +33,16 @@ type Node struct {
 	UpdatedAt   time.Time
 }
 
+type FileNode struct {
+	Node
+	Docs []Doc
+}
+
+type FolderNode struct {
+	Node
+	Children []Node
+}
+
 type NodeRepository interface {
 	GetByID(ctx context.Context, id NodeID) (*Node, error)
 
@@ -33,4 +51,8 @@ type NodeRepository interface {
 	Update(ctx context.Context, n *Node) error
 
 	Delete(ctx context.Context, id NodeID) error
+
+	GetAccess(u UsrID, n NodeID) (NodeAccess, error)
+
+	UpdateAccess(u UsrID, n NodeID, a NodeAccess) error
 }

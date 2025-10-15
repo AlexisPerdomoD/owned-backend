@@ -10,6 +10,7 @@ type DocID = string
 type Doc struct {
 	ID          DocID
 	NodeID      NodeID
+	UsrID       UsrID
 	Description string
 	Title       string
 	MimeType    string
