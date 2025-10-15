@@ -22,6 +22,8 @@ type Doc struct {
 type DocRepository interface {
 	GetByID(ctx context.Context, id DocID) (*Doc, error)
 
+	GetByNodeID(ctx context.Context, id NodeID) ([]Doc, error)
+
 	Create(ctx context.Context, d *Doc) error
 
 	Update(ctx context.Context, d *Doc) error

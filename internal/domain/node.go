@@ -43,6 +43,10 @@ type FolderNode struct {
 	Children []Node
 }
 
+type ChildNode interface {
+	FileNode | FolderNode
+}
+
 type NodeRepository interface {
 	GetByID(ctx context.Context, id NodeID) (*Node, error)
 
