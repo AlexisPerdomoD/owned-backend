@@ -33,6 +33,14 @@ type Node struct {
 	UpdatedAt   time.Time
 }
 
+func (n *Node) GetNode() *Node {
+	return n
+}
+
+type NodeLike interface {
+	GetNode() *Node
+}
+
 type FileNode struct {
 	Node
 	Docs []Doc
@@ -43,12 +51,10 @@ type FolderNode struct {
 	Children []Node
 }
 
-type ChildNode interface {
-	FileNode | FolderNode
-}
-
 type NodeRepository interface {
 	GetByID(ctx context.Context, id NodeID) (*Node, error)
+
+	GetChildren(ctx context.Context, folderID NodeID) ([]Node, error)
 
 	Create(ctx context.Context, n *Node) error
 

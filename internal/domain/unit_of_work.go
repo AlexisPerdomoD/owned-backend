@@ -3,7 +3,7 @@ package domain
 import "context"
 
 type UnitOfWork interface {
-	Do(ctx context.Context, tx func(uow UnitOfWork) error) error
+	Do(ctx context.Context, tx func(uow UnitOfWork) (any, error)) (any, error)
 
 	NodeRepository() NodeRepository
 

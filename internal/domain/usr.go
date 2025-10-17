@@ -42,6 +42,8 @@ type Usr struct {
 type UsrRepository interface {
 	GetByID(ctx context.Context, id UsrID) (*Usr, error)
 
+	GetByUsername(ctx context.Context, username string) (*Usr, error)
+
 	Create(ctx context.Context, d *Usr) error
 
 	Update(ctx context.Context, d *Usr) error
