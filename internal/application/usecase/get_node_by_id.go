@@ -13,11 +13,7 @@ type GetNodeByIDUseCase struct {
 	dr domain.DocRepository
 }
 
-type GetNodeByIDUseCaseResponse interface {
-	*domain.FolderNode | *domain.FileNode
-}
-
-func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) (GetNodeByIDUseCaseResponse, error) {
+func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) (domain.NodeLike, error) {
 	nodeRepository := uc.nr
 	usrRepository := uc.ur
 	docRepository := uc.dr
@@ -60,9 +56,12 @@ func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, n
 		return &domain.FileNode{Node: *node, Docs: docs}, nil
 	}
 
-	// children, err := nodeRepository.GetChildren()
+	children, err := nodeRepository.GetChildren(ctx, node.ID)
+	if err != nil {
+		return nil, err
+	}
 
-	return &domain.FolderNode{Node: *node, Children: []domain.Node{}}, nil
+	return &domain.FolderNode{Node: *node, Children: children}, nil
 }
 
 func NewGetNodeByIDUseCase(
