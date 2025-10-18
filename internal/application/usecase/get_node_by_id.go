@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"ownned/internal/domain"
-	error_pkg "ownned/internal/pkg/error_pkg"
+	"ownned/internal/pkg/error_pkg"
 )
 
 type GetNodeByIDUseCase struct {
@@ -37,7 +37,7 @@ func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, n
 	}
 
 	if usr.Role != domain.SuperUsrRole {
-		access, err := nodeRepository.GetAccess(usr.ID, node.ID)
+		access, err := nodeRepository.GetAccess(ctx, usr.ID, node.ID)
 		if err != nil {
 			return nil, err
 		}
