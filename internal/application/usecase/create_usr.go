@@ -3,15 +3,18 @@ package usecase
 import (
 	"context"
 	"log"
+	"log/slog"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/internal/pkg/error_pkg"
-	"slices"
+	"ownned/internal/pkg/helper_pkg"
 )
 
 type CreateUsrUseCase struct {
-	ur domain.UsrRepository
-	nr domain.NodeRepository
+	ur     domain.UsrRepository
+	nr     domain.NodeRepository
+	uow    domain.UnitOfWorkFactory
+	logger *slog.Logger
 }
 
 func (uc *CreateUsrUseCase) Execute(
@@ -19,8 +22,8 @@ func (uc *CreateUsrUseCase) Execute(
 	creatorID domain.UsrID,
 	args dto.CreateUsrInputDto,
 ) (*domain.Usr, error) {
-	nodeRepository := uc.nr
 	usrRepository := uc.ur
+	unitOfWorkFactory := uc.uow
 
 	creator, err := usrRepository.GetByID(ctx, creatorID)
 	if err != nil {
@@ -40,20 +43,68 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, error_pkg.ErrConflic(map[string]string{"general": "username already in use"})
 	}
 
-	if args.Data.Role != domain.SuperUsrRole && len(args.Access) > 0 {
-slices.
+	tx := unitOfWorkFactory.New()
+	out, err := tx.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) (any, error) {
+		txUsrRepository := tx.UsrRepository()
+		usr := &args.Data
+
+		if err := txUsrRepository.Create(txCtx, usr); err != nil {
+			return nil, err
+		}
+
+		if usr.Role != domain.SuperUsrRole && len(args.Access) > 0 {
+			txNodeRepository := tx.NodeRepository()
+
+			nodes, err := txNodeRepository.GetByIDs(txCtx, args.Access)
+			if err != nil {
+				return nil, err
+			}
+
+			result := helper_pkg.MapConcurrent(nodes, func(n domain.Node) (any, error) {
+				access := domain.ReadOnlyAccess
+
+				if usr.Role == domain.NormalUsrRole {
+					access = domain.WriteAccess
+				}
+
+				return nil, txNodeRepository.UpdateAccess(ctx, usr.ID, n.ID, access)
+			}, 1000)
+
+			for _, v := range result {
+				if v.IsOk() {
+					continue
+				}
+
+				return nil, v.Error
+			}
+
+		}
+
+		return usr, nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, nil
+	usr, ok := out.(*domain.Usr)
+	if !ok {
+		uc.logger.Error("CreateUsrUseCase received invalid type from transaction")
+		return nil, error_pkg.ErrInternal(nil)
+	}
+	return usr, nil
 }
 
 func NewCreateUsrUseCase(
 	ur domain.UsrRepository,
 	nr domain.NodeRepository,
+	uow domain.UnitOfWorkFactory,
+	mainLogger *slog.Logger,
 ) *CreateUsrUseCase {
-	if ur == nil || nr == nil {
+	if ur == nil || nr == nil || uow == nil || mainLogger == nil {
 		log.Panicln("NewCreateUsrUseCase received a nil reference as dependency")
 	}
 
-	return &CreateUsrUseCase{ur, nr}
+	logger := mainLogger.With("usecase", "CreateUsrUseCase")
+	return &CreateUsrUseCase{ur, nr, uow, logger}
 }
