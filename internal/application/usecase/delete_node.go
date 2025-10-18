@@ -8,6 +8,7 @@ import (
 	"ownned/internal/domain"
 	"ownned/internal/pkg/error_pkg"
 	"ownned/internal/pkg/helper_pkg"
+	"time"
 )
 
 type DeleteNodeUseCase struct {
@@ -16,6 +17,39 @@ type DeleteNodeUseCase struct {
 	docRepository  domain.DocRepository
 	storage        storage.Storage
 	logger         *slog.Logger
+}
+
+func (uc *DeleteNodeUseCase) deleteDocsAsync(docs []domain.Doc) {
+
+	logger := uc.logger.With("scope", "deleteDocsAsync")
+	storage := uc.storage
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("panic at deleteDocsAsync", "recover", r)
+		}
+	}()
+
+	deletions := helper_pkg.MapConcurrent(
+		docs,
+		func(doc domain.Doc) (*domain.Doc, error) { return &doc, storage.Remove(ctx, doc.ID) },
+		20,
+	)
+
+	for _, deletion := range deletions {
+		if deletion.IsOk() {
+			continue
+		}
+
+		logger.Warn("failed to delete doc from storage",
+			"docID", deletion.Value.ID,
+			"docTitle", deletion.Value.Title,
+			"nodeID", deletion.Value.NodeID,
+			"err", deletion.Error,
+		)
+	}
+
 }
 
 func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) error {
@@ -56,46 +90,21 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 			)
 		}
 	}
-	// this may be a private handler
-	if node.Type == domain.FileNodeType {
-		docs, err := uc.docRepository.GetByNodeID(ctx, node.ID)
-		if err != nil {
-			return err
-		}
 
-		if err := uc.nodeRepository.Delete(ctx, node.ID); err != nil {
-			return err
-		}
-
-		if len(docs) == 0 {
-			return nil
-		}
-
-		go func() {
-			deletions := helper_pkg.MapConcurrent(docs, func(doc domain.Doc) (*domain.Doc, error) {
-				return &doc, uc.storage.Remove(doc.ID)
-			}, 10)
-
-			for _, deletion := range deletions {
-
-				if deletion.IsOk() {
-					continue
-				}
-
-				uc.logger.Warn("failed to delete doc from storage",
-					"docID", deletion.Value.ID,
-					"docTitle", deletion.Value.Title,
-					"nodeID", node.ID,
-					"err", deletion.Error,
-				)
-			}
-		}()
-
+	docs, err := uc.docRepository.GetByNodeID(ctx, node.ID)
+	if err != nil {
+		return err
 	}
 
-	// this may be a private handler
-	// folder node
-	// todo
+	// IS EXPECTED TO NODE DELETIONS TO DELETE EVERY CHILDREN AND ALSO DOCS ASSOCIATE ON CASCADE
+	if err := uc.nodeRepository.Delete(ctx, node.ID); err != nil {
+		return err
+	}
+
+	if len(docs) > 0 {
+		go uc.deleteDocsAsync(docs)
+	}
+
 	return nil
 }
 

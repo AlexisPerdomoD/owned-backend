@@ -1,14 +1,15 @@
 package storage
 
 import (
+	"context"
 	"io"
 	"ownned/internal/domain"
 )
 
 type Storage interface {
-	Get(identifier domain.DocID) (io.ReadCloser, error)
+	Get(ctx context.Context, docID domain.DocID) (io.ReadCloser, error)
 
-	Put(identifier domain.DocID, f io.ReadCloser) error
+	Put(ctx context.Context, docID domain.DocID, f io.Reader) error
 
-	Remove(identifier domain.DocID) error
+	Remove(ctx context.Context, docID domain.DocID) error
 }
