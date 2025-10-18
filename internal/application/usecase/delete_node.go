@@ -7,6 +7,7 @@ import (
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/internal/pkg/error_pkg"
+	"ownned/internal/pkg/helper_pkg"
 )
 
 type DeleteNodeUseCase struct {
@@ -70,7 +71,25 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 			return nil
 		}
 
-		// todo file versions removing
+		go func() {
+			deletions := helper_pkg.MapConcurrent(docs, func(doc domain.Doc) (*domain.Doc, error) {
+				return &doc, uc.storage.Remove(doc.ID)
+			}, 10)
+
+			for _, deletion := range deletions {
+
+				if deletion.IsOk() {
+					continue
+				}
+
+				uc.logger.Warn("failed to delete doc from storage",
+					"docID", deletion.Value.ID,
+					"docTitle", deletion.Value.Title,
+					"nodeID", node.ID,
+					"err", deletion.Error,
+				)
+			}
+		}()
 
 	}
 
