@@ -54,6 +54,8 @@ type FolderNode struct {
 type NodeRepository interface {
 	GetByID(ctx context.Context, id NodeID) (*Node, error)
 
+	GetByIDs(ctx context.Context, ids []NodeID) ([]Node, error)
+
 	GetChildren(ctx context.Context, folderID NodeID) ([]Node, error)
 
 	Create(ctx context.Context, n *Node) error
@@ -62,7 +64,7 @@ type NodeRepository interface {
 
 	Delete(ctx context.Context, id NodeID) error
 
-	GetAccess(u UsrID, n NodeID) (NodeAccess, error)
+	GetAccess(ctx context.Context, u UsrID, n NodeID) (NodeAccess, error)
 
-	UpdateAccess(u UsrID, n NodeID, a NodeAccess) error
+	UpdateAccess(ctx context.Context, u UsrID, n NodeID, a NodeAccess) error
 }
