@@ -12,12 +12,14 @@ type CreateFolderInputDto struct {
 	Description string         `json:"description" validate:"max=255"`
 }
 
-func (dto *CreateFolderInputDto) GetData() *domain.Node {
-	return &domain.Node{
-		ParentID:    dto.ParentID,
-		Name:        dto.Name,
-		Description: dto.Description,
-		Type:        domain.FolderNodeType,
+func (dto *CreateFolderInputDto) GetData() *domain.FolderNode {
+	return &domain.FolderNode{
+		Node: domain.Node{
+			ParentID:    dto.ParentID,
+			Name:        dto.Name,
+			Description: dto.Description,
+			Type:        domain.FolderNodeType,
+		},
 	}
 }
 

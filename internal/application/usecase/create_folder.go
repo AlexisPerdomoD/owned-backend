@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"log"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/internal/pkg/error_pkg"
@@ -29,24 +28,30 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		return nil, error_pkg.ErrForbidden(nil)
 	}
 
-	node := dto.GetData()
+	folder := dto.GetData()
 
-	if node.ParentID != nil {
-		parent, err := uc.nodeRepository.GetByID(ctx, *node.ParentID)
+	if folder.ParentID != nil {
+		parent, err := uc.nodeRepository.GetByID(ctx, *folder.ParentID)
 		if err != nil {
 			return nil, err
 		}
 
 		if parent == nil {
-			return nil, error_pkg.ErrNotFound(map[string]string{"ParentID": "parent node was not found"})
+			return nil, error_pkg.ErrNotFound(
+				map[string]string{
+					"ParentID": "parent node was not found",
+				})
 		}
 
 		if parent.Type != domain.FolderNodeType {
-			return nil, error_pkg.ErrBadRequest(map[string]string{"parentID": "parent node is not a folder type"})
+			return nil, error_pkg.ErrBadRequest(
+				map[string]string{
+					"parentID": "parent node is not a folder type",
+				})
 		}
 
 		if usr.Role != domain.SuperUsrRole {
-			access, err := uc.nodeRepository.GetAccess(ctx, usr.ID, node.ID)
+			access, err := uc.nodeRepository.GetAccess(ctx, usr.ID, parent.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -61,16 +66,26 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		}
 	}
 
-	tx, err := uc.
+	_, err = uc.
 		unitOfWorkFactory.New().
 		Do(ctx, func(
-			ctx context.Context,
-			uow domain.UnitOfWork,
+			txCtx context.Context,
+			tx domain.UnitOfWork,
 		) (any, error) {
-			return nil, nil
+			nr := tx.NodeRepository()
+
+			if err := nr.Create(txCtx, folder.GetNode()); err != nil {
+				return nil, err
+			}
+
+			if usr.Role == domain.SuperUsrRole {
+				return nil, nil
+			}
+
+			return nil, nr.UpdateAccess(txCtx, usr.ID, folder.ID, domain.WriteAccess)
 		})
 
-	return nil, nil
+	return folder, err
 }
 
 func NewCreateFolderUseCase(
@@ -80,7 +95,7 @@ func NewCreateFolderUseCase(
 ) *CreateFolderUseCase {
 
 	if nr == nil || ur == nil || uowf == nil {
-		log.Panicln("NewCreateFolderUseCase receive nil dependencies")
+		panic("NewCreateFolderUseCase receive nil dependencies")
 	}
 
 	return &CreateFolderUseCase{nr, ur, uowf}
