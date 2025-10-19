@@ -34,7 +34,7 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, error_pkg.ErrForbidden(map[string]string{"general": "usr does not have enought privileges to do this action"})
 	}
 
-	usr, err := usrRepository.GetByUsername(ctx, args.Data.Username)
+	usr, err := usrRepository.GetByUsername(ctx, args.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (uc *CreateUsrUseCase) Execute(
 	tx := unitOfWorkFactory.New()
 	out, err := tx.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) (any, error) {
 		txUsrRepository := tx.UsrRepository()
-		usr := &args.Data
+		usr := args.GetUsrData()
 
 		if err := txUsrRepository.Create(txCtx, usr); err != nil {
 			return nil, err
