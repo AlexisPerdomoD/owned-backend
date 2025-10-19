@@ -1,9 +1,24 @@
 package error_pkg
 
+import "errors"
+
 type AppError struct {
 	error
 	Detail map[string]string
 }
+
+var (
+	ErrNotFoundInstance        = errors.New("not_found")
+	ErrBadRequestInstance      = errors.New("bad_request")
+	ErrConflictInstance        = errors.New("conflict")
+	ErrUnauthenticatedInstance = errors.New("unauthenticated")
+	ErrForbiddenInstance       = errors.New("forbidden")
+	ErrAbortedInstance         = errors.New("aborted")
+	ErrRateLimitInstance       = errors.New("rate_limit")
+	ErrExternalServiceInstance = errors.New("external_service")
+	ErrInternalInstance        = errors.New("internal")
+	ErrUnknownInstance         = errors.New("unknown")
+)
 
 func ErrNotFound(
 	detail map[string]string,
@@ -20,7 +35,7 @@ func ErrBadRequest(
 func ErrConflic(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrConflicInstance, Detail: detail}
+	return &AppError{error: ErrConflictInstance, Detail: detail}
 }
 
 func ErrUnauthenticated(
