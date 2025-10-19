@@ -46,7 +46,7 @@ func (uc *CreateUsrUseCase) Execute(
 	tx := unitOfWorkFactory.New()
 	out, err := tx.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) (any, error) {
 		txUsrRepository := tx.UsrRepository()
-		usr := args.GetUsrData()
+		usr := args.GetData()
 
 		if err := txUsrRepository.Create(txCtx, usr); err != nil {
 			return nil, err
