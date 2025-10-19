@@ -58,6 +58,10 @@ type NodeRepository interface {
 
 	GetChildren(ctx context.Context, folderID NodeID) ([]Node, error)
 
+	GetRoot(ctx context.Context) ([]Node, error)
+
+	GetRootByUsr(ctx context.Context, usrID UsrID) ([]Node, error)
+
 	Create(ctx context.Context, n *Node) error
 
 	Update(ctx context.Context, n *Node) error

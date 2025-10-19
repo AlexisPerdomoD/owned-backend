@@ -1,6 +1,9 @@
 package helper_pkg
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 // Map applies the callback function cb to each element in the input slice and returns a new slice
 // containing the results. If the input slice is nil, it returns nil. If the input slice is empty,
@@ -74,4 +77,12 @@ func MapConcurrent[T any, R any](input []T, cb func(T) (R, error), maxRoutines i
 
 	wg.Wait()
 	return out
+}
+
+func AssertNotNil[T any](v T, entity string) T {
+	if any(v) == nil {
+		panic(fmt.Sprintf("%s provided as nil", entity))
+	}
+
+	return v
 }
