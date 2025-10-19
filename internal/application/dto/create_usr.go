@@ -3,10 +3,7 @@ package dto
 import (
 	"encoding/json"
 	"io"
-	"log/slog"
 	"ownned/internal/domain"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type CreateUsrInputDto struct {
@@ -31,18 +28,19 @@ func (dto *CreateUsrInputDto) GetUsrAccess() []domain.NodeID {
 }
 
 func (dto *CreateUsrInputDto) Validate() error {
-	return validator.New().Struct(dto)
+	return validate.Struct(dto)
 }
 
-func CreateUsrInputDtoFromJSON(r io.ReadCloser) (*CreateUsrInputDto, error) {
-	defer func() {
-		if err := r.Close(); err != nil {
-			slog.Warn("CreateUsrInputDtoFromJSON could not close properly body", "err", err)
-		}
-	}()
-
+func ValidateUsrInputDtoFromJSON(r io.Reader) (*CreateUsrInputDto, error) {
 	var dto CreateUsrInputDto
-	if err := json.NewDecoder(r).Decode(&dto); err != nil {
+	decoder := json.NewDecoder(r)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&dto); err != nil {
+		return nil, err
+	}
+
+	if err := dto.Validate(); err != nil {
 		return nil, err
 	}
 
