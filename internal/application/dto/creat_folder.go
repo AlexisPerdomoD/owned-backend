@@ -27,7 +27,7 @@ func (dto *CreateFolderInputDto) Validate() error {
 	return validate.Struct(dto)
 }
 
-func ValidateCreateFolderInputDtoFromJSON(r io.Reader) (*CreateFolderInputDto, error) {
+func NewCreateFolderInputDtoFromJSON(r io.Reader) (*CreateFolderInputDto, error) {
 	decoder := json.NewDecoder(r)
 	decoder.DisallowUnknownFields()
 
@@ -36,9 +36,5 @@ func ValidateCreateFolderInputDtoFromJSON(r io.Reader) (*CreateFolderInputDto, e
 		return nil, err
 	}
 
-	if err := dto.Validate(); err != nil {
-		return nil, err
-	}
-
-	return &dto, nil
+	return &dto, dto.Validate()
 }

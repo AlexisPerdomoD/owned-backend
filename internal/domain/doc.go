@@ -14,7 +14,7 @@ type Doc struct {
 	Description string
 	Title       string
 	MimeType    string
-	SizeInBytes int64
+	SizeInBytes uint64
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

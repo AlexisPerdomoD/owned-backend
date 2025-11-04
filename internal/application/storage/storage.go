@@ -3,13 +3,19 @@ package storage
 import (
 	"context"
 	"io"
-	"ownned/internal/domain"
 )
 
+type UploadArgs struct {
+	ID       string
+	Mimetype string
+	Size     uint64
+	File     io.Reader
+}
+
 type Storage interface {
-	Get(ctx context.Context, docID domain.DocID) (io.ReadCloser, error)
+	Get(ctx context.Context, id string) (io.ReadCloser, error)
 
-	Put(ctx context.Context, docID domain.DocID, f io.Reader) error
+	Upload(ctx context.Context, args *UploadArgs) error
 
-	Remove(ctx context.Context, docID domain.DocID) error
+	Remove(ctx context.Context, id string) error
 }
