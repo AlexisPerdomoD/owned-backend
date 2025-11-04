@@ -29,11 +29,7 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, err
 	}
 
-	if usr == nil {
-		return nil, error_pkg.ErrUnauthenticated(nil)
-	}
-
-	if usr.Role == domain.LimitedUsrRole {
+	if usr == nil || usr.Role == domain.LimitedUsrRole {
 		return nil, error_pkg.ErrForbidden(nil)
 	}
 
@@ -113,7 +109,7 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 
 	res, ok := txOut.(*CreateDocUseCaseResponse)
 	if !ok {
-		uc.logger.Warn("unexpected result type from tx.Do", "res", txOut)
+		uc.logger.Warn("unexpected result type from tx.Do", "got", txOut)
 		return nil, error_pkg.ErrInternal(nil)
 	}
 
@@ -132,6 +128,6 @@ func NewCreateDocUseCase(
 		panic("missing dependencies for NewCreateDocUseCase")
 	}
 
-	logger := mainLogger.With("CreateDocUseCase", "")
+	logger := mainLogger.With("usecase", "CreateDocUseCase")
 	return &CreateDocUseCase{ur, dr, nr, uowf, storage, logger}
 }
