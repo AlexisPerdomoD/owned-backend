@@ -3,11 +3,11 @@ package dto
 import "ownned/internal/domain"
 
 type FileNodeDTO struct {
-	domain.Node
+	*domain.Node
 	Docs []domain.Doc
 }
 
 type FolderNodeDTO struct {
-	domain.Node
+	*domain.Node
 	Children []domain.Node
 }
