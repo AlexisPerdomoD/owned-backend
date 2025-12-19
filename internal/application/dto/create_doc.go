@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type CreateDocInputDto struct {
+type CreateDocInputDTO struct {
 	ParentID     domain.NodeID `json:"parentID"`
 	Title        string        `json:"title" validate:"required,alphanum,min=1,max=255"`
 	Description  string        `json:"description" validate:"max=255"`
@@ -20,11 +20,11 @@ type CreateDocInputDto struct {
 	File         io.ReadCloser `json:"file"`
 }
 
-func (dto *CreateDocInputDto) Validate() error {
+func (dto *CreateDocInputDTO) Validate() error {
 	return validate.Struct(dto)
 }
 
-func (dto *CreateDocInputDto) GetUploadArgs() *storage.UploadArgs {
+func (dto *CreateDocInputDTO) GetUploadArgs() *storage.UploadArgs {
 	return &storage.UploadArgs{
 		ID:       uuid.New().String(),
 		Mimetype: dto.Mimetype,
@@ -34,13 +34,13 @@ func (dto *CreateDocInputDto) GetUploadArgs() *storage.UploadArgs {
 
 }
 
-func NewCreateDocInputDtoFromMultipartOnDemand(r *http.Request) (*CreateDocInputDto, error) {
+func NewCreateDocInputDtoFromMultipartOnDemand(r *http.Request) (*CreateDocInputDTO, error) {
 	form, err := r.MultipartReader()
 	if err != nil {
 		return nil, err
 	}
 
-	dto := CreateDocInputDto{}
+	dto := CreateDocInputDTO{}
 
 	for {
 		part, err := form.NextPart()

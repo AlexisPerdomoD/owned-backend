@@ -20,6 +20,16 @@ const (
 	WriteAccess
 )
 
+type NodeLike interface {
+	GetNode() *Node
+
+	IsFile() bool
+
+	IsFolder() bool
+
+	IsRoot() bool
+}
+
 type NodeID = string
 
 type Node struct {
@@ -37,18 +47,16 @@ func (n *Node) GetNode() *Node {
 	return n
 }
 
-type NodeLike interface {
-	GetNode() *Node
+func (n *Node) IsFile() bool {
+	return n.Type == FileNodeType
 }
 
-type FileNode struct {
-	Node
-	Docs []Doc
+func (n *Node) IsFolder() bool {
+	return n.Type == FolderNodeType
 }
 
-type FolderNode struct {
-	Node
-	Children []Node
+func (n *Node) IsRoot() bool {
+	return n.ParentID == nil
 }
 
 type NodeRepository interface {

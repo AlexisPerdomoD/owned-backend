@@ -14,7 +14,7 @@ type CreateFolderUseCase struct {
 	unitOfWorkFactory domain.UnitOfWorkFactory
 }
 
-func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.UsrID, dto *dto.CreateFolderInputDto) (*domain.FolderNode, error) {
+func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.UsrID, dto *dto.CreateFolderInputDTO) (*domain.Node, error) {
 	usr, err := uc.usrRepository.GetByID(ctx, creatorID)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 	err = tx.Do(ctx, func(txCtx context.Context) error {
 		nr := tx.NodeRepository()
 
-		if err := nr.Create(txCtx, folder.GetNode()); err != nil {
+		if err := nr.Create(txCtx, folder); err != nil {
 			return err
 		}
 

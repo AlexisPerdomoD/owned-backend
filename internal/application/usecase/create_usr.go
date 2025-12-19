@@ -20,7 +20,7 @@ type CreateUsrUseCase struct {
 func (uc *CreateUsrUseCase) Execute(
 	ctx context.Context,
 	creatorID domain.UsrID,
-	args dto.CreateUsrInputDto,
+	args dto.CreateUsrInputDTO,
 ) (*domain.Usr, error) {
 	usrRepository := uc.ur
 	unitOfWorkFactory := uc.uow
@@ -43,7 +43,7 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, error_pkg.ErrConflic(map[string]string{"general": "username already in use"})
 	}
 
-	usr = args.GetData()
+	usr = args.ToDomain()
 	tx := unitOfWorkFactory.New()
 	if err = tx.Do(ctx, func(txCtx context.Context) error {
 

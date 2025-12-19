@@ -6,7 +6,7 @@ import (
 	"ownned/internal/domain"
 )
 
-type CreateUsrInputDto struct {
+type CreateUsrInputDTO struct {
 	Role      domain.UsrRole  `json:"role" validate:"required,min=0,max=2"`
 	Firstname string          `json:"firstname" validate:"required,min=2,max=50"`
 	Lastname  string          `json:"lastname" validate:"required,min=2,max=50"`
@@ -14,7 +14,7 @@ type CreateUsrInputDto struct {
 	Access    []domain.NodeID `json:"access" validate:"required,dive,uuid4"`
 }
 
-func (dto *CreateUsrInputDto) GetData() *domain.Usr {
+func (dto *CreateUsrInputDTO) ToDomain() *domain.Usr {
 	return &domain.Usr{
 		Role:      dto.Role,
 		Firstname: dto.Firstname,
@@ -23,16 +23,16 @@ func (dto *CreateUsrInputDto) GetData() *domain.Usr {
 	}
 }
 
-func (dto *CreateUsrInputDto) GetUsrAccess() []domain.NodeID {
+func (dto *CreateUsrInputDTO) GetUsrAccess() []domain.NodeID {
 	return dto.Access
 }
 
-func (dto *CreateUsrInputDto) Validate() error {
+func (dto *CreateUsrInputDTO) Validate() error {
 	return validate.Struct(dto)
 }
 
-func ValidateUsrInputDtoFromJSON(r io.Reader) (*CreateUsrInputDto, error) {
-	var dto CreateUsrInputDto
+func ValidateUsrInputDtoFromJSON(r io.Reader) (*CreateUsrInputDTO, error) {
+	var dto CreateUsrInputDTO
 	decoder := json.NewDecoder(r)
 	decoder.DisallowUnknownFields()
 
