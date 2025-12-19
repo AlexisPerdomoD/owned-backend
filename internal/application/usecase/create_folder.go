@@ -66,24 +66,20 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		}
 	}
 
-	_, err = uc.
-		unitOfWorkFactory.New().
-		Do(ctx, func(
-			txCtx context.Context,
-			tx domain.UnitOfWork,
-		) (any, error) {
-			nr := tx.NodeRepository()
+	tx := uc.unitOfWorkFactory.New()
+	err = tx.Do(ctx, func(txCtx context.Context) error {
+		nr := tx.NodeRepository()
 
-			if err := nr.Create(txCtx, folder.GetNode()); err != nil {
-				return nil, err
-			}
+		if err := nr.Create(txCtx, folder.GetNode()); err != nil {
+			return err
+		}
 
-			if usr.Role == domain.SuperUsrRole {
-				return nil, nil
-			}
+		if usr.Role == domain.SuperUsrRole {
+			return nil
+		}
 
-			return nil, nr.UpdateAccess(txCtx, usr.ID, folder.ID, domain.WriteAccess)
-		})
+		return nr.UpdateAccess(txCtx, usr.ID, folder.ID, domain.WriteAccess)
+	})
 
 	return folder, err
 }

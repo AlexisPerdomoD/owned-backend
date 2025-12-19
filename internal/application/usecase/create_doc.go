@@ -62,37 +62,38 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 	}
 
 	tx := uc.unitOfWorkFactory.New()
-	txOut, err := tx.Do(
-		ctx,
-		func(txCtx context.Context, tx domain.UnitOfWork) (any, error) {
-			txNodeRepository := tx.NodeRepository()
-			node := &domain.Node{
-				ParentID:    &arg.ParentID,
-				Type:        domain.FileNodeType,
-				Description: arg.Description,
-				Name:        arg.Title,
-			}
+	response := &CreateDocUseCaseResponse{}
 
-			if err := txNodeRepository.Create(txCtx, node); err != nil {
-				return nil, err
-			}
+	err = tx.Do(ctx, func(txCtx context.Context) error {
+		node := &domain.Node{
+			ParentID:    &arg.ParentID,
+			Type:        domain.FileNodeType,
+			Description: arg.Description,
+			Name:        arg.Title,
+		}
 
-			doc := &domain.Doc{
-				ID:          uploadArgs.ID,
-				MimeType:    uploadArgs.Mimetype,
-				Title:       arg.Title,
-				Description: arg.Description,
-				NodeID:      node.ID,
-				UsrID:       usr.ID,
-				SizeInBytes: uint64(uploadArgs.Size),
-			}
+		if err := tx.NodeRepository().Create(txCtx, node); err != nil {
+			return err
+		}
 
-			if err := tx.DocRepository().Create(txCtx, doc); err != nil {
-				return nil, err
-			}
+		doc := &domain.Doc{
+			ID:          uploadArgs.ID,
+			MimeType:    uploadArgs.Mimetype,
+			Title:       arg.Title,
+			Description: arg.Description,
+			NodeID:      node.ID,
+			UsrID:       usr.ID,
+			SizeInBytes: uint64(uploadArgs.Size),
+		}
 
-			return &CreateDocUseCaseResponse{Doc: doc, Node: node}, nil
-		},
+		if err := tx.DocRepository().Create(txCtx, doc); err != nil {
+			return err
+		}
+
+		response.Doc = doc
+		response.Node = node
+		return nil
+	},
 	)
 
 	if err != nil {
@@ -107,13 +108,7 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, err
 	}
 
-	res, ok := txOut.(*CreateDocUseCaseResponse)
-	if !ok {
-		uc.logger.Warn("unexpected result type from tx.Do", "got", txOut)
-		return nil, error_pkg.ErrInternal(nil)
-	}
-
-	return res, nil
+	return response, nil
 }
 
 func NewCreateDocUseCase(

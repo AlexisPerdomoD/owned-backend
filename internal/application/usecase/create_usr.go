@@ -43,21 +43,18 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, error_pkg.ErrConflic(map[string]string{"general": "username already in use"})
 	}
 
+	usr = args.GetData()
 	tx := unitOfWorkFactory.New()
-	out, err := tx.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) (any, error) {
-		txUsrRepository := tx.UsrRepository()
-		usr := args.GetData()
+	if err = tx.Do(ctx, func(txCtx context.Context) error {
 
-		if err := txUsrRepository.Create(txCtx, usr); err != nil {
-			return nil, err
+		if err := tx.UsrRepository().Create(txCtx, usr); err != nil {
+			return err
 		}
 
 		if usr.Role != domain.SuperUsrRole && len(args.Access) > 0 {
-			txNodeRepository := tx.NodeRepository()
-
-			nodes, err := txNodeRepository.GetByIDs(txCtx, args.Access)
+			nodes, err := tx.NodeRepository().GetByIDs(txCtx, args.Access)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			result := helper_pkg.MapConcurrent(nodes, func(n domain.Node) (any, error) {
@@ -67,7 +64,7 @@ func (uc *CreateUsrUseCase) Execute(
 					access = domain.WriteAccess
 				}
 
-				return nil, txNodeRepository.UpdateAccess(ctx, usr.ID, n.ID, access)
+				return nil, tx.NodeRepository().UpdateAccess(txCtx, usr.ID, n.ID, access)
 			}, 1000)
 
 			for _, v := range result {
@@ -75,23 +72,17 @@ func (uc *CreateUsrUseCase) Execute(
 					continue
 				}
 
-				return nil, v.Error
+				return v.Error
 			}
 
 		}
 
-		return usr, nil
-	})
-
-	if err != nil {
+		return nil
+	}); err != nil {
+		uc.logger.Log(ctx, slog.LevelDebug, "transaction failed:", "err", err)
 		return nil, err
 	}
 
-	usr, ok := out.(*domain.Usr)
-	if !ok {
-		uc.logger.Error("CreateUsrUseCase received invalid type from transaction")
-		return nil, error_pkg.ErrInternal(nil)
-	}
 	return usr, nil
 }
 

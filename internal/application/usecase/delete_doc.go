@@ -98,29 +98,32 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 	}
 
 	tx := uc.unitOfWorkFactory.New()
-	_, err := tx.Do(
+	if err := tx.Do(
 		ctx,
-		func(txCtx context.Context, tx domain.UnitOfWork) (any, error) {
+		func(txCtx context.Context) error {
 			if err := tx.DocRepository().Delete(txCtx, doc.ID); err != nil {
-				return nil, err
+				return err
 			}
 
 			versions, err := tx.DocRepository().GetByNodeID(txCtx, doc.NodeID)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			if len(versions) == 0 {
 				err := tx.NodeRepository().Delete(txCtx, doc.NodeID)
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 
-			return nil, nil
-		})
+			return nil
+		}); err != nil {
+		// log in  here
+		return nil, err
+	}
 
-	return doc, err
+	return doc, nil
 }
 
 func NewDeleteDocUseCase(
