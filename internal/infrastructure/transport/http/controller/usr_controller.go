@@ -1,0 +1,51 @@
+package controller
+
+import (
+	"log"
+	"net/http"
+	"ownned/internal/application/usecase"
+	"ownned/internal/infrastructure/transport/http/mapper"
+	"ownned/internal/infrastructure/transport/http/response"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+)
+
+type UsrController struct {
+	createUsrUseCase *usecase.CreateUsrUseCase
+	getUsrUseCase    *usecase.GetUsrUseCase
+}
+
+func (c *UsrController) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
+	usrID, err := uuid.Parse(chi.URLParam(r, "usrID"))
+	if err != nil {
+		httpErr := &mapper.ErrView{
+			Code:    http.StatusBadRequest,
+			Message: "usrID invalido",
+		}
+		_ = response.WriteJSON(w, httpErr.Code, httpErr)
+		return
+	}
+
+	usr, err := c.getUsrUseCase.Execute(r.Context(), usrID.String())
+	if err != nil {
+		httpErr := mapper.MapError(err)
+		_ = response.WriteJSON(w, httpErr.Code, httpErr)
+		return
+	}
+
+	view := mapper.MapUsrViewFrom(usr)
+	_ = response.WriteJSON(w, http.StatusOK, view)
+}
+
+func NewUsrController(
+	cu *usecase.CreateUsrUseCase,
+	gu *usecase.GetUsrUseCase,
+) *UsrController {
+
+	if cu == nil || gu == nil {
+		log.Panic("missing dependencies for NewUsrController")
+	}
+
+	return &UsrController{cu, gu}
+}

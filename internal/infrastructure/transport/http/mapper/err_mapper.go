@@ -1,28 +1,29 @@
-package error_pkg
+package mapper
 
 import (
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"ownned/internal/domain"
 
 	"github.com/go-playground/validator/v10"
 )
 
-type HTTPError struct {
+type ErrView struct {
 	Code    int               `json:"code"`
 	Message string            `json:"message"`
 	Detail  map[string]string `json:"detail"`
 }
 
-func mapValidationError(err validator.ValidationErrors) *HTTPError {
+func mapValidationError(err validator.ValidationErrors) *ErrView {
 	detail := make(map[string]string)
 
 	for _, fe := range err {
 		detail[fe.Field()] = fmt.Sprintf("failed on %s, %s", fe.Tag(), fe.Error())
 	}
 
-	return &HTTPError{
+	return &ErrView{
 		Code:    http.StatusUnprocessableEntity,
 		Message: "validation failed",
 		Detail:  detail,
@@ -30,59 +31,59 @@ func mapValidationError(err validator.ValidationErrors) *HTTPError {
 
 }
 
-func mapAppError(err *AppError) *HTTPError {
-	switch err.error {
-	case ErrNotFoundInstance:
-		return &HTTPError{
+func mapAppError(err *domain.AppError) *ErrView {
+	switch err.GetInstance() {
+	case domain.ErrNotFoundInstance:
+		return &ErrView{
 			Code:    http.StatusNotFound,
 			Message: "resource not found",
 			Detail:  err.Detail,
 		}
 
-	case ErrBadRequestInstance:
-		return &HTTPError{
+	case domain.ErrBadRequestInstance:
+		return &ErrView{
 			Code:    http.StatusBadRequest,
 			Message: "bad request",
 			Detail:  err.Detail,
 		}
 
-	case ErrConflictInstance:
-		return &HTTPError{
+	case domain.ErrConflictInstance:
+		return &ErrView{
 			Code:    http.StatusConflict,
 			Message: "conflict",
 			Detail:  err.Detail,
 		}
 
-	case ErrForbiddenInstance:
-		return &HTTPError{
+	case domain.ErrForbiddenInstance:
+		return &ErrView{
 			Code:    http.StatusForbidden,
 			Message: "forbidden",
 			Detail:  err.Detail,
 		}
 
-	case ErrUnauthenticatedInstance:
-		return &HTTPError{
+	case domain.ErrUnauthenticatedInstance:
+		return &ErrView{
 			Code:    http.StatusUnauthorized,
 			Message: "unauthenticated",
 			Detail:  err.Detail,
 		}
 
-	case ErrRateLimitInstance:
-		return &HTTPError{
+	case domain.ErrRateLimitInstance:
+		return &ErrView{
 			Code:    http.StatusTooManyRequests,
 			Message: "too many requests",
 			Detail:  err.Detail,
 		}
 
-	case ErrInternalInstance:
-		return &HTTPError{
+	case domain.ErrInternalInstance:
+		return &ErrView{
 			Code:    http.StatusInternalServerError,
 			Message: "internal error",
 			Detail:  err.Detail,
 		}
 
 	default:
-		return &HTTPError{
+		return &ErrView{
 			Code:    http.StatusInternalServerError,
 			Message: "unknown error",
 			Detail:  err.Detail,
@@ -92,12 +93,12 @@ func mapAppError(err *AppError) *HTTPError {
 
 var errLogger = slog.With("error handler")
 
-func MapError(err error) *HTTPError {
+func MapError(err error) *ErrView {
 	if err == nil {
 		return nil
 	}
 
-	var appErr *AppError
+	var appErr *domain.AppError
 	if errors.As(err, &appErr) {
 		return mapAppError(appErr)
 	}
@@ -109,7 +110,7 @@ func MapError(err error) *HTTPError {
 
 	errLogger.Error("unexpected error happened", "error", err)
 
-	return &HTTPError{
+	return &ErrView{
 		Code:    http.StatusInternalServerError,
 		Message: "unexpected error",
 	}
