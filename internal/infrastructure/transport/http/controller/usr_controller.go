@@ -20,11 +20,7 @@ type UsrController struct {
 func (c *UsrController) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 	usrID, err := uuid.Parse(chi.URLParam(r, "usrID"))
 	if err != nil {
-		httpErr := &mapper.ErrView{
-			Code:    http.StatusBadRequest,
-			Message: "usrID invalido",
-		}
-		_ = response.WriteJSON(w, httpErr.Code, httpErr)
+		_ = response.WriteJSONError(w, apperror.ErrBadRequest(map[string]string{"usrID": "invalido"}))
 		return
 	}
 
