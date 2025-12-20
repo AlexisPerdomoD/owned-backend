@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
-	"ownned/internal/pkg/error_pkg"
 	"ownned/internal/pkg/helper_pkg"
 	"time"
 )
@@ -59,11 +58,11 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 	}
 
 	if usr == nil {
-		return error_pkg.ErrUnauthenticated(nil)
+		return domain.ErrUnauthenticated(nil)
 	}
 
 	if usr.Role != domain.LimitedUsrRole {
-		return error_pkg.ErrForbidden(map[string]string{"general": "usr does not have access to do this action"})
+		return domain.ErrForbidden(map[string]string{"general": "usr does not have access to do this action"})
 	}
 
 	node, err := uc.nodeRepository.GetByID(ctx, nodeID)
@@ -72,7 +71,7 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 	}
 
 	if node == nil {
-		return error_pkg.ErrNotFound(map[string]string{"nodeID": "entity was not found by id=" + nodeID})
+		return domain.ErrNotFound(map[string]string{"nodeID": "entity was not found by id=" + nodeID})
 	}
 
 	if usr.Role != domain.SuperUsrRole {
@@ -82,7 +81,7 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 		}
 
 		if access != domain.WriteAccess {
-			return error_pkg.ErrForbidden(
+			return domain.ErrForbidden(
 				map[string]string{
 					"general": "Not enought privileges to delete node",
 					"nodeID":  "usr does not have permission to do this action over this resource nodeID=" + node.ID,

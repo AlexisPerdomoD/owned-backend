@@ -5,7 +5,6 @@ import (
 	"log"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
-	"ownned/internal/pkg/error_pkg"
 )
 
 type GetNodeByIDUseCase struct {
@@ -25,7 +24,7 @@ func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, n
 	}
 
 	if usr == nil {
-		return nil, error_pkg.ErrForbidden(nil)
+		return nil, domain.ErrForbidden(nil)
 	}
 
 	node, err := nodeRepository.GetByID(ctx, nodeID)
@@ -34,7 +33,7 @@ func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, n
 	}
 
 	if node == nil {
-		return nil, error_pkg.ErrNotFound(nil)
+		return nil, domain.ErrNotFound(nil)
 	}
 
 	if usr.Role != domain.SuperUsrRole {
@@ -44,7 +43,7 @@ func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, n
 		}
 
 		if access == domain.NoAccess {
-			return nil, error_pkg.ErrForbidden(nil)
+			return nil, domain.ErrForbidden(nil)
 		}
 	}
 

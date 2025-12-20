@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
-	"ownned/internal/pkg/error_pkg"
 	"ownned/internal/pkg/helper_pkg"
 )
 
@@ -31,7 +30,7 @@ func (uc *CreateUsrUseCase) Execute(
 	}
 
 	if creator.Role != domain.SuperUsrRole {
-		return nil, error_pkg.ErrForbidden(map[string]string{"general": "usr does not have enought privileges to do this action"})
+		return nil, domain.ErrForbidden(map[string]string{"general": "usr does not have enought privileges to do this action"})
 	}
 
 	usr, err := usrRepository.GetByUsername(ctx, args.Username)
@@ -40,18 +39,18 @@ func (uc *CreateUsrUseCase) Execute(
 	}
 
 	if usr != nil {
-		return nil, error_pkg.ErrConflic(map[string]string{"general": "username already in use"})
+		return nil, domain.ErrConflic(map[string]string{"general": "username already in use"})
 	}
 
-	usr = args.ToDomain()
+	newUsr := args.ToDomain()
 	tx := unitOfWorkFactory.New()
 	if err = tx.Do(ctx, func(txCtx context.Context) error {
 
-		if err := tx.UsrRepository().Create(txCtx, usr); err != nil {
+		if err := tx.UsrRepository().Create(txCtx, newUsr); err != nil {
 			return err
 		}
 
-		if usr.Role != domain.SuperUsrRole && len(args.Access) > 0 {
+		if newUsr.Role != domain.SuperUsrRole && len(args.Access) > 0 {
 			nodes, err := tx.NodeRepository().GetByIDs(txCtx, args.Access)
 			if err != nil {
 				return err
@@ -60,11 +59,11 @@ func (uc *CreateUsrUseCase) Execute(
 			result := helper_pkg.MapConcurrent(nodes, func(n domain.Node) (any, error) {
 				access := domain.ReadOnlyAccess
 
-				if usr.Role == domain.NormalUsrRole {
+				if newUsr.Role == domain.NormalUsrRole {
 					access = domain.WriteAccess
 				}
 
-				return nil, tx.NodeRepository().UpdateAccess(txCtx, usr.ID, n.ID, access)
+				return nil, tx.NodeRepository().UpdateAccess(txCtx, newUsr.ID, n.ID, access)
 			}, 1000)
 
 			for _, v := range result {
@@ -83,7 +82,7 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, err
 	}
 
-	return usr, nil
+	return newUsr, nil
 }
 
 func NewCreateUsrUseCase(

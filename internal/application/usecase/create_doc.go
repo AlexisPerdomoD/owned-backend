@@ -6,7 +6,6 @@ import (
 	"ownned/internal/application/dto"
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
-	"ownned/internal/pkg/error_pkg"
 )
 
 type CreateDocUseCaseResponse struct {
@@ -30,7 +29,7 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 	}
 
 	if usr == nil || usr.Role == domain.LimitedUsrRole {
-		return nil, error_pkg.ErrForbidden(nil)
+		return nil, domain.ErrForbidden(nil)
 	}
 
 	folder, err := uc.nodeRepository.GetByID(ctx, arg.ParentID)
@@ -39,11 +38,11 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 	}
 
 	if folder == nil {
-		return nil, error_pkg.ErrNotFound(map[string]string{"parentID": "folder was not found"})
+		return nil, domain.ErrNotFound(map[string]string{"parentID": "folder was not found"})
 	}
 
 	if folder.Type != domain.FolderNodeType {
-		return nil, error_pkg.ErrBadRequest(map[string]string{"parentID": "does not point to a folder"})
+		return nil, domain.ErrBadRequest(map[string]string{"parentID": "does not point to a folder"})
 	}
 
 	access, err := uc.nodeRepository.GetAccess(ctx, usr.ID, folder.ID)
@@ -52,7 +51,7 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 	}
 
 	if access != domain.WriteAccess {
-		return nil, error_pkg.ErrForbidden(map[string]string{"parentID": "usr does not have enought access"})
+		return nil, domain.ErrForbidden(map[string]string{"parentID": "usr does not have enought access"})
 	}
 
 	uploadArgs := arg.GetUploadArgs()
