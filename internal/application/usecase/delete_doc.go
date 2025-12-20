@@ -4,6 +4,7 @@ import (
 	"context"
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
+	"ownned/pkg/apperror"
 )
 
 type DeleteDoceUseCase struct {
@@ -21,7 +22,7 @@ func (uc *DeleteDoceUseCase) validateUsrAccess(ctx context.Context, usrID domain
 	}
 
 	if access != domain.WriteAccess {
-		return domain.ErrForbidden(nil)
+		return apperror.ErrForbidden(nil)
 	}
 
 	return nil
@@ -39,7 +40,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 		}
 
 		if usr == nil {
-			channel <- domain.ErrNotFound(map[string]string{"usrID": "usr entity was not found"})
+			channel <- apperror.ErrNotFound(map[string]string{"usrID": "usr entity was not found"})
 			return
 		}
 
@@ -55,7 +56,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 		}
 
 		if doc == nil {
-			channel <- domain.ErrNotFound(map[string]string{"docID": "doc entity was not found"})
+			channel <- apperror.ErrNotFound(map[string]string{"docID": "doc entity was not found"})
 			return
 		}
 
@@ -83,7 +84,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 			continue
 		}
 
-		return nil, domain.ErrInternal(nil)
+		return nil, apperror.ErrInternal(nil)
 	}
 
 	if usr.Role != domain.SuperUsrRole {

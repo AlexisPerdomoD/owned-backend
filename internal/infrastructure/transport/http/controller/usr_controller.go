@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 	"ownned/internal/application/usecase"
-	"ownned/internal/domain"
 	"ownned/internal/infrastructure/transport/http/mapper"
 	"ownned/internal/infrastructure/transport/http/response"
+	"ownned/pkg/apperror"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -30,8 +30,7 @@ func (c *UsrController) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 
 	usr, err := c.getUsrUseCase.Execute(r.Context(), usrID.String())
 	if err != nil {
-		httpErr := mapper.MapError(err)
-		_ = response.WriteJSON(w, httpErr.Code, httpErr)
+		_ = response.WriteJSONError(w, err)
 		return
 	}
 
@@ -40,7 +39,7 @@ func (c *UsrController) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UsrController) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
-	_ = response.WriteJSON(w, http.StatusNotImplemented, domain.ErrNotImplemented(nil))
+	_ = response.WriteJSONError(w, apperror.ErrNotImplemented(nil))
 }
 
 func (c *UsrController) GetRouter() chi.Router {

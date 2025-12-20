@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
+	"ownned/pkg/apperror"
 )
 
 type CreateFolderUseCase struct {
@@ -20,11 +21,11 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 	}
 
 	if usr == nil {
-		return nil, domain.ErrUnauthenticated(nil)
+		return nil, apperror.ErrUnauthenticated(nil)
 	}
 
 	if usr.Role == domain.LimitedUsrRole {
-		return nil, domain.ErrForbidden(nil)
+		return nil, apperror.ErrForbidden(nil)
 	}
 
 	folder := dto.GetData()
@@ -36,14 +37,14 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		}
 
 		if parent == nil {
-			return nil, domain.ErrNotFound(
+			return nil, apperror.ErrNotFound(
 				map[string]string{
 					"ParentID": "parent node was not found",
 				})
 		}
 
 		if parent.Type != domain.FolderNodeType {
-			return nil, domain.ErrBadRequest(
+			return nil, apperror.ErrBadRequest(
 				map[string]string{
 					"parentID": "parent node is not a folder type",
 				})
@@ -56,7 +57,7 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 			}
 
 			if access != domain.WriteAccess {
-				return nil, domain.ErrForbidden(
+				return nil, apperror.ErrForbidden(
 					map[string]string{
 						"parentID": fmt.Sprintf("usr cannot create nodes on this folder=%s with ID=%s", parent.Name, parent.ID),
 					})

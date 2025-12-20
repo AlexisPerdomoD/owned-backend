@@ -3,7 +3,8 @@ package usecase
 import (
 	"context"
 	"ownned/internal/domain"
-	h "ownned/internal/pkg/helper_pkg"
+	"ownned/pkg/apperror"
+	h "ownned/pkg/helper_pkg"
 )
 
 type GetRootNodesUseCase struct {
@@ -18,7 +19,7 @@ func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) 
 	}
 
 	if usr == nil {
-		return nil, domain.ErrUnauthenticated(nil)
+		return nil, apperror.ErrUnauthenticated(nil)
 	}
 
 	switch usr.Role {
@@ -29,7 +30,7 @@ func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) 
 		return uc.nodeRepository.GetRootByUsr(ctx, usr.ID)
 
 	default:
-		return nil, domain.ErrForbidden(nil)
+		return nil, apperror.ErrForbidden(nil)
 	}
 }
 

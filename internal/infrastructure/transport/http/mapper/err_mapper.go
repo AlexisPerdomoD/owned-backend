@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"ownned/internal/domain"
+	"ownned/pkg/apperror"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -31,51 +31,51 @@ func mapValidationError(err validator.ValidationErrors) *ErrView {
 
 }
 
-func mapAppError(err *domain.AppError) *ErrView {
-	switch err.GetInstance() {
-	case domain.ErrNotFoundInstance:
+func mapAppError(err *apperror.AppError) *ErrView {
+	switch err {
+	case apperror.ErrNotFoundInstance:
 		return &ErrView{
 			Code:    http.StatusNotFound,
 			Message: "resource not found",
 			Detail:  err.Detail,
 		}
 
-	case domain.ErrBadRequestInstance:
+	case apperror.ErrBadRequestInstance:
 		return &ErrView{
 			Code:    http.StatusBadRequest,
 			Message: "bad request",
 			Detail:  err.Detail,
 		}
 
-	case domain.ErrConflictInstance:
+	case apperror.ErrConflictInstance:
 		return &ErrView{
 			Code:    http.StatusConflict,
 			Message: "conflict",
 			Detail:  err.Detail,
 		}
 
-	case domain.ErrForbiddenInstance:
+	case apperror.ErrForbiddenInstance:
 		return &ErrView{
 			Code:    http.StatusForbidden,
 			Message: "forbidden",
 			Detail:  err.Detail,
 		}
 
-	case domain.ErrUnauthenticatedInstance:
+	case apperror.ErrUnauthenticatedInstance:
 		return &ErrView{
 			Code:    http.StatusUnauthorized,
 			Message: "unauthenticated",
 			Detail:  err.Detail,
 		}
 
-	case domain.ErrRateLimitInstance:
+	case apperror.ErrRateLimitInstance:
 		return &ErrView{
 			Code:    http.StatusTooManyRequests,
 			Message: "too many requests",
 			Detail:  err.Detail,
 		}
 
-	case domain.ErrInternalInstance:
+	case apperror.ErrInternalInstance:
 		return &ErrView{
 			Code:    http.StatusInternalServerError,
 			Message: "internal error",
@@ -98,7 +98,7 @@ func MapError(err error) *ErrView {
 		return nil
 	}
 
-	var appErr *domain.AppError
+	var appErr *apperror.AppError
 	if errors.As(err, &appErr) {
 		return mapAppError(appErr)
 	}

@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
-	"ownned/internal/pkg/helper_pkg"
+	"ownned/pkg/apperror"
+	"ownned/pkg/helper_pkg"
 )
 
 type CreateUsrUseCase struct {
@@ -30,7 +31,7 @@ func (uc *CreateUsrUseCase) Execute(
 	}
 
 	if creator.Role != domain.SuperUsrRole {
-		return nil, domain.ErrForbidden(map[string]string{"general": "usr does not have enought privileges to do this action"})
+		return nil, apperror.ErrForbidden(map[string]string{"general": "usr does not have enought privileges to do this action"})
 	}
 
 	usr, err := usrRepository.GetByUsername(ctx, args.Username)
@@ -39,7 +40,7 @@ func (uc *CreateUsrUseCase) Execute(
 	}
 
 	if usr != nil {
-		return nil, domain.ErrConflic(map[string]string{"general": "username already in use"})
+		return nil, apperror.ErrConflic(map[string]string{"general": "username already in use"})
 	}
 
 	newUsr := args.ToDomain()

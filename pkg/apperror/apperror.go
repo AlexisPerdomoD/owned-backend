@@ -1,14 +1,18 @@
-package domain
+package apperror
 
 import "errors"
 
 type AppError struct {
-	error
+	Kind   error
 	Detail map[string]string
 }
 
-func (e *AppError) GetInstance() error {
-	return e.error
+func (e *AppError) Unwrap() error {
+	return e.Kind
+}
+
+func (e *AppError) Error() string {
+	return e.Kind.Error()
 }
 
 var (
@@ -28,65 +32,65 @@ var (
 func ErrNotFound(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrNotFoundInstance, Detail: detail}
+	return &AppError{Kind: ErrNotFoundInstance, Detail: detail}
 }
 
 func ErrBadRequest(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrBadRequestInstance, Detail: detail}
+	return &AppError{Kind: ErrBadRequestInstance, Detail: detail}
 }
 
 func ErrConflic(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrConflictInstance, Detail: detail}
+	return &AppError{Kind: ErrConflictInstance, Detail: detail}
 }
 
 func ErrUnauthenticated(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrUnauthenticatedInstance, Detail: detail}
+	return &AppError{Kind: ErrUnauthenticatedInstance, Detail: detail}
 }
 
 func ErrForbidden(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrForbiddenInstance, Detail: detail}
+	return &AppError{Kind: ErrForbiddenInstance, Detail: detail}
 }
 
 func ErrAborted(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrAbortedInstance, Detail: detail}
+	return &AppError{Kind: ErrAbortedInstance, Detail: detail}
 }
 
 func ErrRateLimit(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrRateLimitInstance, Detail: detail}
+	return &AppError{Kind: ErrRateLimitInstance, Detail: detail}
 }
 
 func ErrExternalService(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrExternalServiceInstance, Detail: detail}
+	return &AppError{Kind: ErrExternalServiceInstance, Detail: detail}
 }
 
 func ErrInternal(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrInternalInstance, Detail: detail}
+	return &AppError{Kind: ErrInternalInstance, Detail: detail}
 }
 
 func ErrNotImplemented(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrNotImplementedInstance, Detail: detail}
+	return &AppError{Kind: ErrNotImplementedInstance, Detail: detail}
 }
 
 func ErrUnknown(
 	detail map[string]string,
 ) *AppError {
-	return &AppError{error: ErrUnknownInstance, Detail: detail}
+	return &AppError{Kind: ErrUnknownInstance, Detail: detail}
 }
