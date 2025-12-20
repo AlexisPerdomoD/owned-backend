@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"ownned/internal/application/usecase"
+	"ownned/internal/domain"
 	"ownned/internal/infrastructure/transport/http/mapper"
 	"ownned/internal/infrastructure/transport/http/response"
 
@@ -36,6 +37,20 @@ func (c *UsrController) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 
 	view := mapper.MapUsrViewFrom(usr)
 	_ = response.WriteJSON(w, http.StatusOK, view)
+}
+
+func (c *UsrController) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
+	_ = response.WriteJSON(w, http.StatusNotImplemented, domain.ErrNotImplemented(nil))
+}
+
+func (c *UsrController) GetRouter() chi.Router {
+	r := chi.NewRouter()
+
+	r.Post("/", c.CreateUsrHandler)
+
+	r.Get("/{usrID}", c.GetUsrHandler)
+
+	return r
 }
 
 func NewUsrController(

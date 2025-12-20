@@ -21,6 +21,7 @@ var (
 	ErrRateLimitInstance       = errors.New("rate_limit")
 	ErrExternalServiceInstance = errors.New("external_service")
 	ErrInternalInstance        = errors.New("internal")
+	ErrNotImplementedInstance  = errors.New("not_implemented")
 	ErrUnknownInstance         = errors.New("unknown")
 )
 
@@ -76,6 +77,12 @@ func ErrInternal(
 	detail map[string]string,
 ) *AppError {
 	return &AppError{error: ErrInternalInstance, Detail: detail}
+}
+
+func ErrNotImplemented(
+	detail map[string]string,
+) *AppError {
+	return &AppError{error: ErrNotImplementedInstance, Detail: detail}
 }
 
 func ErrUnknown(
