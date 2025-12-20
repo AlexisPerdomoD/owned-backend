@@ -4,7 +4,7 @@ import (
 	"context"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
-	h "ownned/pkg/helper_pkg"
+	"ownned/pkg/helper"
 )
 
 type GetRootNodesUseCase struct {
@@ -38,7 +38,7 @@ func NewGetRootNodesUseCase(
 	nr domain.NodeRepository,
 	ur domain.UsrRepository,
 ) *GetRootNodesUseCase {
-	h.AssertNotNil(nr, "NodeRepository")
-	h.AssertNotNil(ur, "UsrRepository")
+	helper.AssertNotNil(nr, "NodeRepository")
+	helper.AssertNotNil(ur, "UsrRepository")
 	return &GetRootNodesUseCase{nr, ur}
 }

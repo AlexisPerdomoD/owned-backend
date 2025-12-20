@@ -7,7 +7,7 @@ import (
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
-	"ownned/pkg/helper_pkg"
+	"ownned/pkg/concurrent"
 )
 
 type CreateUsrUseCase struct {
@@ -57,7 +57,7 @@ func (uc *CreateUsrUseCase) Execute(
 				return err
 			}
 
-			result := helper_pkg.MapConcurrent(nodes, func(n domain.Node) (any, error) {
+			result := concurrent.MapConcurrent(nodes, func(n domain.Node) (any, error) {
 				access := domain.ReadOnlyAccess
 
 				if newUsr.Role == domain.NormalUsrRole {

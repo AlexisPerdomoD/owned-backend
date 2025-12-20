@@ -7,7 +7,7 @@ import (
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
-	"ownned/pkg/helper_pkg"
+	"ownned/pkg/concurrent"
 	"time"
 )
 
@@ -31,7 +31,7 @@ func (uc *DeleteNodeUseCase) deleteDocsAsync(docs []domain.Doc) {
 		}
 	}()
 
-	deletions := helper_pkg.MapConcurrent(
+	deletions := concurrent.MapConcurrent(
 		docs,
 		func(doc domain.Doc) (*domain.Doc, error) { return &doc, storage.Remove(ctx, doc.ID) },
 		20,

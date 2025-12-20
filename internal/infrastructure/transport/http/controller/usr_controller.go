@@ -1,12 +1,12 @@
 package controller
 
 import (
-	"log"
 	"net/http"
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/transport/http/mapper"
 	"ownned/internal/infrastructure/transport/http/response"
 	"ownned/pkg/apperror"
+	"ownned/pkg/helper"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -42,24 +42,11 @@ func (c *UsrController) CreateUsrHandler(w http.ResponseWriter, r *http.Request)
 	_ = response.WriteJSONError(w, apperror.ErrNotImplemented(nil))
 }
 
-func (c *UsrController) GetRouter() chi.Router {
-	r := chi.NewRouter()
-
-	r.Post("/", c.CreateUsrHandler)
-
-	r.Get("/{usrID}", c.GetUsrHandler)
-
-	return r
-}
-
 func NewUsrController(
 	cu *usecase.CreateUsrUseCase,
 	gu *usecase.GetUsrUseCase,
 ) *UsrController {
-
-	if cu == nil || gu == nil {
-		log.Panic("missing dependencies for NewUsrController")
-	}
-
+	helper.AssertNotNil(cu, "CreateUsrUseCase")
+	helper.AssertNotNil(gu, "GetUsrUseCase")
 	return &UsrController{cu, gu}
 }
