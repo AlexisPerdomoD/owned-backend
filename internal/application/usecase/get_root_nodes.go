@@ -38,7 +38,7 @@ func NewGetRootNodesUseCase(
 	nr domain.NodeRepository,
 	ur domain.UsrRepository,
 ) *GetRootNodesUseCase {
-	helper.AssertNotNil(nr, "NodeRepository")
-	helper.AssertNotNil(ur, "UsrRepository")
+	helper.NotNilOrPanic(nr, "NodeRepository")
+	helper.NotNilOrPanic(ur, "UsrRepository")
 	return &GetRootNodesUseCase{nr, ur}
 }

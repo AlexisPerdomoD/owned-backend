@@ -73,7 +73,7 @@ func NewUsrHandler(
 	cu *usecase.CreateUsrUseCase,
 	gu *usecase.GetUsrUseCase,
 ) *UsrHandler {
-	helper.AssertNotNil(cu, "CreateUsrUseCase")
-	helper.AssertNotNil(gu, "GetUsrUseCase")
+	helper.NotNilOrPanic(cu, "CreateUsrUseCase")
+	helper.NotNilOrPanic(gu, "GetUsrUseCase")
 	return &UsrHandler{cu, gu}
 }

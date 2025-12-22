@@ -22,7 +22,7 @@ func Map[T any, R any](input []T, cb func(T) R) []R {
 	return out
 }
 
-func AssertNotNil(v any, entity string) {
+func NotNilOrPanic(v any, entity string) {
 	if any(v) == nil {
 		panic(fmt.Sprintf("%s provided as nil", entity))
 	}
