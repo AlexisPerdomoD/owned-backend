@@ -13,7 +13,7 @@ type AuthMiddleware struct {
 	jwtValidator auth.JWTValidator
 }
 
-func (m *AuthMiddleware) IsAuthenticated(next http.Handler) http.Handler {
+func (m *AuthMiddleware) IsAuthenticated(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if token == "" {
@@ -42,7 +42,7 @@ func (m *AuthMiddleware) IsAuthenticated(next http.Handler) http.Handler {
 
 		ctx := auth.SetSession(r.Context(), session)
 
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next(w, r.WithContext(ctx))
 	})
 
 }

@@ -1,5 +1,7 @@
 package auth
 
+import "ownned/pkg/apperror"
+
 // JWTGenerator is an interface for generating JWT tokens
 // using internal app configurations
 type JWTGenerator interface {
@@ -10,4 +12,18 @@ type JWTGenerator interface {
 // using internal app configurations
 type JWTValidator interface {
 	Validate(token string) (*Session, error)
+}
+
+type JWTService struct{}
+
+func (j *JWTService) Generate(usr *Session) (string, error) {
+	return "", apperror.ErrNotImplemented(nil)
+}
+
+func (j *JWTService) Validate(token string) (*Session, error) {
+	return nil, apperror.ErrNotImplemented(nil)
+}
+
+func NewJWTService() *JWTService {
+	return &JWTService{}
 }

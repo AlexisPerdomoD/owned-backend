@@ -5,13 +5,34 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"ownned/internal/application/usecase"
+	"ownned/internal/domain"
+	"ownned/internal/infrastructure/auth"
+	"ownned/internal/infrastructure/db/mysql/repo"
+	"ownned/internal/infrastructure/db/mysql/uow"
+	"ownned/internal/infrastructure/transport/http/handler"
+	"ownned/internal/infrastructure/transport/http/middleware"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
 
 // start point baby
 func main() {
-	l := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	//services
+	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	jwtService := auth.NewJWTService()
+	// db
+	var usrRepository domain.UsrRepository = repo.NewUsrRepository()
+	var nodeRepository domain.NodeRepository = repo.NewNodeRepository()
+	// var docRepository domain.DocRepository = repo.NewDocRepository()
+	var unitOfWorkFactory domain.UnitOfWorkFactory = uow.New()
+
+	createUsr := usecase.NewCreateUsrUseCase(usrRepository, nodeRepository, unitOfWorkFactory, l)
+	getUsr := usecase.NewGetUsrUseCase(usrRepository)
+
+	usrHandler := handler.NewUsrHandler(createUsr, getUsr)
+
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -21,11 +42,47 @@ func main() {
 		}
 	})
 
+	// midlewares
+	authmiddleware := middleware.NewAuthMiddleware(jwtService)
+
+	// Usr Routes
+	usrR := chi.NewRouter()
+	usrR.Get("/{id}", authmiddleware.IsAuthenticated(usrHandler.GetUsrHandler))
+	usrR.Post("/", authmiddleware.IsAuthenticated(usrHandler.CreateUsrHandler))
+
+	r.Mount("/api/v1/usr", usrR)
+	log_routes(r, l)
+
 	PORT := 9090
 	l.Info("server starting at:", "port", PORT)
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", PORT), r); err != nil && err != http.ErrServerClosed {
-		l.Error("server could not start", "err", err)
-	}
+	_ = http.ListenAndServe(fmt.Sprintf(":%d", PORT), r)
+}
 
+func log_routes(r chi.Router, l *slog.Logger) {
+
+	for idx, route := range r.Routes() {
+		l.Info("registered route", "idx", idx+1, "path", route.Pattern)
+		if route.SubRoutes == nil {
+			continue
+		}
+
+		if len(route.SubRoutes.Routes()) == 0 {
+			continue
+		}
+
+		for subIdx, subRoute := range route.SubRoutes.Routes() {
+			l.Info("registered sub route",
+				"idx", fmt.Sprintf("%d.%d", idx+1, subIdx+1),
+				"path", fmt.Sprintf("%s%s",
+					strings.TrimSuffix(
+						route.Pattern,
+						"/*",
+					),
+					subRoute.Pattern,
+				),
+			)
+		}
+
+	}
 }
