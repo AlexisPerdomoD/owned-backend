@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 	"log/slog"
-	"ownned/internal/application/dto"
+	"ownned/internal/application/model"
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
@@ -23,7 +23,7 @@ type CreateDocUseCase struct {
 	logger            *slog.Logger
 }
 
-func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID, arg *dto.CreateDocInputDTO) (*CreateDocUseCaseResponse, error) {
+func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID, arg *model.CreateDocInputDTO) (*CreateDocUseCaseResponse, error) {
 	usr, err := uc.usrRepository.GetByID(ctx, creatorID)
 	if err != nil {
 		return nil, err

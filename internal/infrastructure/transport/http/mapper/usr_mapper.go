@@ -2,25 +2,14 @@ package mapper
 
 import (
 	"ownned/internal/domain"
-	"time"
+	"ownned/internal/infrastructure/transport/http/model"
 )
 
-type UsrView struct {
-	ID        string         `json:"id"`
-	Role      domain.UsrRole `json:"role"`
-	RoleTitle string         `json:"roleTitle"`
-	Firstname string         `json:"firstname"`
-	Lastname  string         `json:"lastname"`
-	Username  string         `json:"username"`
-	CreatedAt time.Time      `json:"createdAt"`
-}
-
-func MapUsrViewFrom(usr *domain.Usr) *UsrView {
+func UsrViewFromDomain(usr *domain.Usr) *model.UsrView {
 	if usr == nil {
 		return nil
 	}
-
-	return &UsrView{
+	return &model.UsrView{
 		ID:        usr.ID,
 		Role:      usr.Role,
 		RoleTitle: usr.Role.String(),

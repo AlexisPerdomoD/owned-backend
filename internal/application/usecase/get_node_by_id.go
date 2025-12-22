@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 	"log"
-	"ownned/internal/application/dto"
+	"ownned/internal/application/model"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 )
@@ -54,7 +54,7 @@ func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, n
 			return nil, err
 		}
 
-		return &dto.FileNodeDTO{Node: node, Docs: docs}, nil
+		return &model.FileNodeDTO{Node: node, Docs: docs}, nil
 	}
 
 	children, err := nodeRepository.GetChildren(ctx, node.ID)
@@ -62,7 +62,7 @@ func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, n
 		return nil, err
 	}
 
-	return &dto.FolderNodeDTO{Node: node, Children: children}, nil
+	return &model.FolderNodeDTO{Node: node, Children: children}, nil
 }
 
 func NewGetNodeByIDUseCase(

@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"log/slog"
-	"ownned/internal/application/dto"
+	"ownned/internal/application/model"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 	"ownned/pkg/concurrent"
@@ -20,7 +20,7 @@ type CreateUsrUseCase struct {
 func (uc *CreateUsrUseCase) Execute(
 	ctx context.Context,
 	creatorID domain.UsrID,
-	args dto.CreateUsrInputDTO,
+	args model.CreateUsrInputDTO,
 ) (*domain.Usr, error) {
 	usrRepository := uc.ur
 	unitOfWorkFactory := uc.uow

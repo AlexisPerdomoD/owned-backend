@@ -29,68 +29,46 @@ var (
 	ErrUnknownInstance         = errors.New("unknown")
 )
 
-func ErrNotFound(
-	detail map[string]string,
-) *AppError {
+func ErrNotFound(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrNotFoundInstance, Detail: detail}
 }
 
-func ErrBadRequest(
-	detail map[string]string,
-) *AppError {
+func ErrBadRequest(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrBadRequestInstance, Detail: detail}
 }
 
-func ErrConflic(
-	detail map[string]string,
-) *AppError {
+func ErrConflic(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrConflictInstance, Detail: detail}
 }
 
-func ErrUnauthenticated(
-	detail map[string]string,
-) *AppError {
+func ErrUnauthenticated(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrUnauthenticatedInstance, Detail: detail}
 }
 
-func ErrForbidden(
-	detail map[string]string,
-) *AppError {
+func ErrForbidden(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrForbiddenInstance, Detail: detail}
 }
 
-func ErrAborted(
-	detail map[string]string,
-) *AppError {
+func ErrAborted(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrAbortedInstance, Detail: detail}
 }
 
-func ErrRateLimit(
-	detail map[string]string,
-) *AppError {
+func ErrRateLimit(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrRateLimitInstance, Detail: detail}
 }
 
-func ErrExternalService(
-	detail map[string]string,
-) *AppError {
+func ErrExternalService(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrExternalServiceInstance, Detail: detail}
 }
 
-func ErrInternal(
-	detail map[string]string,
-) *AppError {
+func ErrInternal(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrInternalInstance, Detail: detail}
 }
 
-func ErrNotImplemented(
-	detail map[string]string,
-) *AppError {
+func ErrNotImplemented(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrNotImplementedInstance, Detail: detail}
 }
 
-func ErrUnknown(
-	detail map[string]string,
-) *AppError {
+func ErrUnknown(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrUnknownInstance, Detail: detail}
 }

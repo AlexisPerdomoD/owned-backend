@@ -1,10 +1,6 @@
-package dto
+package model
 
-import (
-	"encoding/json"
-	"io"
-	"ownned/internal/domain"
-)
+import "ownned/internal/domain"
 
 type CreateUsrInputDTO struct {
 	Role      domain.UsrRole  `json:"role" validate:"required,min=0,max=2"`
@@ -29,20 +25,4 @@ func (dto *CreateUsrInputDTO) GetUsrAccess() []domain.NodeID {
 
 func (dto *CreateUsrInputDTO) Validate() error {
 	return validate.Struct(dto)
-}
-
-func ValidateUsrInputDtoFromJSON(r io.Reader) (*CreateUsrInputDTO, error) {
-	var dto CreateUsrInputDTO
-	decoder := json.NewDecoder(r)
-	decoder.DisallowUnknownFields()
-
-	if err := decoder.Decode(&dto); err != nil {
-		return nil, err
-	}
-
-	if err := dto.Validate(); err != nil {
-		return nil, err
-	}
-
-	return &dto, nil
 }
