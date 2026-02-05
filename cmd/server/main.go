@@ -8,8 +8,7 @@ import (
 	"ownned/internal/application/usecase"
 	"ownned/internal/domain"
 	"ownned/internal/infrastructure/auth"
-	"ownned/internal/infrastructure/db/mysql/repo"
-	"ownned/internal/infrastructure/db/mysql/uow"
+	"ownned/internal/infrastructure/db/pg"
 	"ownned/internal/infrastructure/transport/http/handler"
 	"ownned/internal/infrastructure/transport/http/middleware"
 	"strings"
@@ -22,11 +21,11 @@ func main() {
 	//services
 	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	jwtService := auth.NewJWTService()
-	// db
-	var usrRepository domain.UsrRepository = repo.NewUsrRepository()
-	var nodeRepository domain.NodeRepository = repo.NewNodeRepository()
+	// DB
+	var usrRepository domain.UsrRepository = pg.NewUsrRepository()
+	var nodeRepository domain.NodeRepository = pg.NewNodeRepository()
 	// var docRepository domain.DocRepository = repo.NewDocRepository()
-	var unitOfWorkFactory domain.UnitOfWorkFactory = uow.New()
+	var unitOfWorkFactory domain.UnitOfWorkFactory = pg.NewUnitOfWorkFactory()
 
 	createUsr := usecase.NewCreateUsrUseCase(usrRepository, nodeRepository, unitOfWorkFactory, l)
 	getUsr := usecase.NewGetUsrUseCase(usrRepository)

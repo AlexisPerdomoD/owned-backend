@@ -66,8 +66,7 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		}
 	}
 
-	tx := uc.unitOfWorkFactory.New()
-	err = tx.Do(ctx, func(txCtx context.Context) error {
+	err = uc.unitOfWorkFactory.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
 		nr := tx.NodeRepository()
 
 		if err := nr.Create(txCtx, folder); err != nil {

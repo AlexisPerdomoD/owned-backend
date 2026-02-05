@@ -22,10 +22,8 @@ func (uc *CreateUsrUseCase) Execute(
 	creatorID domain.UsrID,
 	args model.CreateUsrInputDTO,
 ) (*domain.Usr, error) {
-	usrRepository := uc.ur
-	unitOfWorkFactory := uc.uow
 
-	creator, err := usrRepository.GetByID(ctx, creatorID)
+	creator, err := uc.ur.GetByID(ctx, creatorID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +32,7 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, apperror.ErrForbidden(map[string]string{"general": "usr does not have enought privileges to do this action"})
 	}
 
-	usr, err := usrRepository.GetByUsername(ctx, args.Username)
+	usr, err := uc.ur.GetByUsername(ctx, args.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +42,7 @@ func (uc *CreateUsrUseCase) Execute(
 	}
 
 	newUsr := args.ToDomain()
-	tx := unitOfWorkFactory.New()
-	if err = tx.Do(ctx, func(txCtx context.Context) error {
+	if err = uc.uow.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
 
 		if err := tx.UsrRepository().Create(txCtx, newUsr); err != nil {
 			return err

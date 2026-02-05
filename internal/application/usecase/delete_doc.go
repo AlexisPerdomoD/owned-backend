@@ -97,10 +97,9 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 		return nil, err
 	}
 
-	tx := uc.unitOfWorkFactory.New()
-	if err := tx.Do(
+	if err := uc.unitOfWorkFactory.Do(
 		ctx,
-		func(txCtx context.Context) error {
+		func(txCtx context.Context, tx domain.UnitOfWork) error {
 			if err := tx.DocRepository().Delete(txCtx, doc.ID); err != nil {
 				return err
 			}

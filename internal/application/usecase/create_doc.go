@@ -61,10 +61,9 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, err
 	}
 
-	tx := uc.unitOfWorkFactory.New()
 	response := &CreateDocUseCaseResponse{}
 
-	err = tx.Do(ctx, func(txCtx context.Context) error {
+	err = uc.unitOfWorkFactory.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
 		node := &domain.Node{
 			ParentID:    &arg.ParentID,
 			Type:        domain.FileNodeType,
