@@ -4,9 +4,12 @@ import (
 	"context"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type NodeRepository struct {
+	db sqlx.ExtContext
 }
 
 func (r *NodeRepository) GetByID(ctx context.Context, id string) (*domain.Node, error) {
@@ -49,6 +52,6 @@ func (r *NodeRepository) UpdateAccess(ctx context.Context, u string, n string, a
 	return apperror.ErrNotImplemented(nil)
 }
 
-func NewNodeRepository() *NodeRepository {
-	return &NodeRepository{}
+func NewNodeRepository(db sqlx.ExtContext) *NodeRepository {
+	return &NodeRepository{db}
 }

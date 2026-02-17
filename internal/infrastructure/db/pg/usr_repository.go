@@ -4,9 +4,12 @@ import (
 	"context"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type UsrRepository struct {
+	db sqlx.ExtContext
 }
 
 func (r *UsrRepository) GetByID(ctx context.Context, id domain.UsrID) (*domain.Usr, error) {
@@ -29,6 +32,6 @@ func (r *UsrRepository) Delete(ctx context.Context, id domain.UsrID) error {
 	return apperror.ErrNotImplemented(nil)
 }
 
-func NewUsrRepository() *UsrRepository {
-	return &UsrRepository{}
+func NewUsrRepository(db sqlx.ExtContext) *UsrRepository {
+	return &UsrRepository{db}
 }

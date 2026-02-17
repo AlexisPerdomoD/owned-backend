@@ -4,9 +4,12 @@ import (
 	"context"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type DocRepository struct {
+	db sqlx.ExtContext
 }
 
 func (r *DocRepository) GetByID(ctx context.Context, id string) (*domain.Doc, error) {
@@ -29,6 +32,6 @@ func (r *DocRepository) Delete(ctx context.Context, id string) error {
 	return apperror.ErrNotImplemented(nil)
 }
 
-func NewDocRepository() *DocRepository {
-	return &DocRepository{}
+func NewDocRepository(db sqlx.ExtContext) *DocRepository {
+	return &DocRepository{db}
 }
