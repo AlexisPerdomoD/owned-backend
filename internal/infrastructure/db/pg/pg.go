@@ -18,12 +18,12 @@ import (
 func NewDB(
 	dbName string,
 	host string,
-	port int,
+	port string,
 	user string,
 	password string,
 	ssl string,
 ) (*sqlx.DB, error) {
-	connection := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+	connection := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		host,
 		port,
 		user,
@@ -31,7 +31,16 @@ func NewDB(
 		dbName,
 		ssl)
 
-	return sqlx.Open("postgres", connection)
+	db, err := sqlx.Open("postgres", connection)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
 
 func MigrateUp(db *sql.DB) error {

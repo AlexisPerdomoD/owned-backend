@@ -1,3 +1,4 @@
+// Package domain provides the domain layer of the application.
 package domain
 
 import (

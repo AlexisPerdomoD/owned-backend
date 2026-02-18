@@ -1,0 +1,16 @@
+services:
+  db:
+    container_name: ownned_local_container
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: local_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5501:5432"
+    volumes:
+      - /var/lib/postgresql/data
+    networks:
+      - ownned_dev
+networks:
+  ownned_dev:

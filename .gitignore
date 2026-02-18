@@ -1,0 +1,18 @@
+# Git ignore default for golang setup
+/bin/
+/build/
+/dist/
+*.exe
+*.test
+*.out
+
+.env
+
+.DS_Store
+
+vendor/
+
+.vscode/
+.idea/
+*.swp
+*.swo

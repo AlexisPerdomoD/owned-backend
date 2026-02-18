@@ -5,31 +5,53 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
+	"time"
+
 	"ownned/internal/application/usecase"
 	"ownned/internal/domain"
 	"ownned/internal/infrastructure/auth"
 	"ownned/internal/infrastructure/db/pg"
 	"ownned/internal/infrastructure/transport/http/handler"
 	"ownned/internal/infrastructure/transport/http/middleware"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
 
 // start point baby
 func main() {
-	//services
+	// services
 	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	jwtService := auth.NewJWTService()
+	sessionSecret, exists := os.LookupEnv("SESSION_SECRET")
+	if !exists {
+		panic("SESSION_SECRET not set")
+	}
+
+	jwtService := auth.NewJWTService(sessionSecret)
 	// DB
-	var usrRepository domain.UsrRepository = pg.NewUsrRepository()
-	var nodeRepository domain.NodeRepository = pg.NewNodeRepository()
+	db, err := pg.NewDB(
+		os.Getenv("PG_DB"),
+		os.Getenv("PG_HOST"),
+		os.Getenv("PG_PORT"),
+		os.Getenv("PG_USER"),
+		os.Getenv("PG_PASSWORD"),
+		os.Getenv("PG_SSL"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := pg.MigrateUp(db.DB); err != nil {
+		panic(err)
+	}
+
+	var usrRepository domain.UsrRepository = pg.NewUsrRepository(db)
+	var nodeRepository domain.NodeRepository = pg.NewNodeRepository(db)
 	// var docRepository domain.DocRepository = repo.NewDocRepository()
-	var unitOfWorkFactory domain.UnitOfWorkFactory = pg.NewUnitOfWorkFactory()
+	var unitOfWorkFactory domain.UnitOfWorkFactory = pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
 	createUsr := usecase.NewCreateUsrUseCase(usrRepository, nodeRepository, unitOfWorkFactory, l)
 	getUsr := usecase.NewGetUsrUseCase(usrRepository)
-
 	usrHandler := handler.NewUsrHandler(createUsr, getUsr)
 
 	r := chi.NewRouter()
@@ -50,7 +72,7 @@ func main() {
 	usrR.Post("/", authmiddleware.IsAuthenticated(usrHandler.CreateUsrHandler))
 
 	r.Mount("/api/v1/usr", usrR)
-	log_routes(r, l)
+	logRoutes(r, l)
 
 	PORT := 9090
 	l.Info("server starting at:", "port", PORT)
@@ -58,8 +80,7 @@ func main() {
 	_ = http.ListenAndServe(fmt.Sprintf(":%d", PORT), r)
 }
 
-func log_routes(r chi.Router, l *slog.Logger) {
-
+func logRoutes(r chi.Router, l *slog.Logger) {
 	for idx, route := range r.Routes() {
 		l.Info("registered route", "idx", idx+1, "path", route.Pattern)
 		if route.SubRoutes == nil {

@@ -1,7 +1,9 @@
+// Package auth provides the implementation of the authentication layer.
 package auth
 
 import (
 	"context"
+
 	"ownned/pkg/apperror"
 )
 
