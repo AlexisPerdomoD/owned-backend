@@ -7,25 +7,20 @@ import (
 
 type UsrID = string
 
-type UsrRole int
+type UsrRole string
 
 const (
-	SuperUsrRole UsrRole = iota
-	NormalUsrRole
-	LimitedUsrRole
+	SuperUsrRole   UsrRole = "super_usr_role"
+	NormalUsrRole  UsrRole = "normal_usr_role"
+	LimitedUsrRole UsrRole = "limited_usr_role"
 )
 
-func (r UsrRole) String() string {
+func (r UsrRole) IsValid() bool {
 	switch r {
-	case SuperUsrRole:
-		return "SuperUsrRole"
-	case NormalUsrRole:
-		return "NormalUsrRole"
-	case LimitedUsrRole:
-		return "LimitedUsrRole"
+	case SuperUsrRole, NormalUsrRole, LimitedUsrRole:
+		return true
 	default:
-		return "UnknownUsrRole"
-
+		return false
 	}
 }
 
