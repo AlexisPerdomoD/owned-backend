@@ -2,26 +2,27 @@ package usecase
 
 import (
 	"context"
+
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 )
 
 type DeleteDoceUseCase struct {
-	storage           storage.Storage
-	docRepository     domain.DocRepository
-	nodeRepository    domain.NodeRepository
-	usrRepository     domain.UsrRepository
-	unitOfWorkFactory domain.UnitOfWorkFactory
+	storage            storage.Storage
+	docRepository      domain.DocRepository
+	nodeRepository     domain.NodeRepository
+	usrRepository      domain.UsrRepository
+	groupUsrRepository domain.GroupUsrRepository
 }
 
 func (uc *DeleteDoceUseCase) validateUsrAccess(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) error {
-	access, err := uc.nodeRepository.GetAccess(ctx, usrID, nodeID)
+	access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usrID, nodeID)
 	if err != nil {
 		return err
 	}
 
-	if access != domain.WriteAccess {
+	if access != domain.GroupWriteAccess {
 		return apperror.ErrForbidden(nil)
 	}
 
@@ -29,62 +30,22 @@ func (uc *DeleteDoceUseCase) validateUsrAccess(ctx context.Context, usrID domain
 }
 
 func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, docID domain.DocID) (*domain.Doc, error) {
-	channel := make(chan any, 2)
-	defer close(channel)
+	usr, err := uc.usrRepository.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 
-	go func() {
-		usr, err := uc.usrRepository.GetByID(ctx, userID)
-		if err != nil {
-			channel <- err
-			return
-		}
+	if usr == nil {
+		return nil, apperror.ErrNotFound(map[string]string{"usrID": "usr entity was not found"})
+	}
 
-		if usr == nil {
-			channel <- apperror.ErrNotFound(map[string]string{"usrID": "usr entity was not found"})
-			return
-		}
+	doc, err := uc.docRepository.GetByID(ctx, docID)
+	if err != nil {
+		return nil, err
+	}
 
-		channel <- usr
-	}()
-
-	go func() {
-		doc, err := uc.docRepository.GetByID(ctx, docID)
-
-		if err != nil {
-			channel <- err
-			return
-		}
-
-		if doc == nil {
-			channel <- apperror.ErrNotFound(map[string]string{"docID": "doc entity was not found"})
-			return
-		}
-
-		channel <- doc
-	}()
-
-	var usr *domain.Usr
-	var doc *domain.Doc
-
-	for val := range channel {
-		err, isErr := val.(error)
-		if isErr {
-			return nil, err
-		}
-
-		usrOut, isUsr := val.(*domain.Usr)
-		if isUsr {
-			usr = usrOut
-			continue
-		}
-
-		docOut, isDoc := val.(*domain.Doc)
-		if isDoc {
-			doc = docOut
-			continue
-		}
-
-		return nil, apperror.ErrInternal(nil)
+	if doc == nil {
+		return nil, apperror.ErrNotFound(map[string]string{"docID": "doc entity was not found"})
 	}
 
 	if usr.Role != domain.SuperUsrRole {
@@ -97,28 +58,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 		return nil, err
 	}
 
-	if err := uc.unitOfWorkFactory.Do(
-		ctx,
-		func(txCtx context.Context, tx domain.UnitOfWork) error {
-			if err := tx.DocRepository().Delete(txCtx, doc.ID); err != nil {
-				return err
-			}
-
-			versions, err := tx.DocRepository().GetByNodeID(txCtx, doc.NodeID)
-			if err != nil {
-				return err
-			}
-
-			if len(versions) == 0 {
-				err := tx.NodeRepository().Delete(txCtx, doc.NodeID)
-				if err != nil {
-					return err
-				}
-			}
-
-			return nil
-		}); err != nil {
-		// log in  here
+	if err := uc.nodeRepository.Delete(ctx, doc.NodeID); err != nil {
 		return nil, err
 	}
 
@@ -130,11 +70,11 @@ func NewDeleteDocUseCase(
 	dr domain.DocRepository,
 	nr domain.NodeRepository,
 	ur domain.UsrRepository,
-	uoff domain.UnitOfWorkFactory,
+	gur domain.GroupUsrRepository,
 ) *DeleteDoceUseCase {
-	if s == nil || uoff == nil || dr == nil || nr == nil || ur == nil {
+	if s == nil || gur == nil || dr == nil || nr == nil || ur == nil {
 		panic("NewDeleteDocUseCase has been provided with nil dependencies")
 	}
 
-	return &DeleteDoceUseCase{s, dr, nr, ur, uoff}
+	return &DeleteDoceUseCase{s, dr, nr, ur, gur}
 }

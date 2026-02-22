@@ -74,6 +74,8 @@ type GroupUsrRepository interface {
 	GetByGroup(ctx context.Context, g GroupID) ([]GroupUsr, error)
 	// GetByUsr returns a list of groups accessed by a user
 	GetByUsr(ctx context.Context, usrID UsrID) ([]GroupUsr, error)
+	// GetAccess returns the access of a user to a Node based on usrs group access, if no access is found, it returns ErrNoAccess
+	GetNodeAccess(ctx context.Context, usrID UsrID, nodeID NodeID) (GroupAccess, error)
 	// Upsert access to a groups for a users
 	// Returns an error if nil data is provided
 	Upsert(ctx context.Context, d *UpsertGroupUsr) error

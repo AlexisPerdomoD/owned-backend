@@ -74,10 +74,14 @@ func main() {
 	r.Mount("/api/v1/usr", usrR)
 	logRoutes(r, l)
 
-	PORT := 9090
+	PORT, exists := os.LookupEnv("PORT")
+	if !exists {
+		PORT = "3000"
+	}
+
 	l.Info("server starting at:", "port", PORT)
 
-	_ = http.ListenAndServe(fmt.Sprintf(":%d", PORT), r)
+	_ = http.ListenAndServe(fmt.Sprintf(":%s", PORT), r)
 }
 
 func logRoutes(r chi.Router, l *slog.Logger) {

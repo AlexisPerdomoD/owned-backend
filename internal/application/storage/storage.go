@@ -1,3 +1,4 @@
+// Package storage provides the storage layer of the application.
 package storage
 
 import (

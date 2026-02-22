@@ -30,7 +30,7 @@ db-local-reset:
 	$(MAKE) db-local-up
 
 db-local-console:
-	$(DOCKER) exec -it $$(docker ps -qf name=ownned_local_db) psql -h localhost -U postgres -d local_db
+	$(DOCKER) exec -it $$(docker ps -qf name=ownned_local_container) psql -h localhost -U postgres -d local_db
 
 ################################################################################
 # TEST DB COMMANDS

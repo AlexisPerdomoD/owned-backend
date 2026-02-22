@@ -3,18 +3,18 @@ package model
 import (
 	"encoding/json"
 	"io"
+
 	"ownned/internal/domain"
 )
 
 type CreateFolderInputDTO struct {
-	ParentID    *domain.NodeID `json:"parentID"`
+	ParentID    *domain.NodeID `json:"parent_id"`
 	Name        string         `json:"name" validate:"required,alphanum,min=1,max=255,excludes=\\/"`
 	Description string         `json:"description" validate:"max=255"`
 }
 
-func (dto *CreateFolderInputDTO) GetData() *domain.Node {
-	return &domain.Node{
-		ParentID:    dto.ParentID,
+func (dto *CreateFolderInputDTO) GetData() (parentID *domain.NodeID, node *domain.Node) {
+	return dto.ParentID, &domain.Node{
 		Name:        dto.Name,
 		Description: dto.Description,
 		Type:        domain.FolderNodeType,

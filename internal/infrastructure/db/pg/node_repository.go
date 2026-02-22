@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 
@@ -41,14 +42,6 @@ func (r *NodeRepository) Update(ctx context.Context, n *domain.Node) error {
 }
 
 func (r *NodeRepository) Delete(ctx context.Context, id string) error {
-	return apperror.ErrNotImplemented(nil)
-}
-
-func (r *NodeRepository) GetAccess(ctx context.Context, u string, n string) (domain.NodeAccess, error) {
-	return 0, apperror.ErrNotImplemented(nil)
-}
-
-func (r *NodeRepository) UpdateAccess(ctx context.Context, u string, n string, a domain.NodeAccess) error {
 	return apperror.ErrNotImplemented(nil)
 }
 

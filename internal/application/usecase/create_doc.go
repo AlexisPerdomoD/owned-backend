@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"log/slog"
+
 	"ownned/internal/application/model"
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
@@ -15,12 +16,13 @@ type CreateDocUseCaseResponse struct {
 }
 
 type CreateDocUseCase struct {
-	usrRepository     domain.UsrRepository
-	docRepository     domain.DocRepository
-	nodeRepository    domain.NodeRepository
-	unitOfWorkFactory domain.UnitOfWorkFactory
-	storage           storage.Storage
-	logger            *slog.Logger
+	usrRepository      domain.UsrRepository
+	docRepository      domain.DocRepository
+	nodeRepository     domain.NodeRepository
+	groupUsrRepository domain.GroupUsrRepository
+	unitOfWorkFactory  domain.UnitOfWorkFactory
+	storage            storage.Storage
+	logger             *slog.Logger
 }
 
 func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID, arg *model.CreateDocInputDTO) (*CreateDocUseCaseResponse, error) {
@@ -46,12 +48,12 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, apperror.ErrBadRequest(map[string]string{"parentID": "does not point to a folder"})
 	}
 
-	access, err := uc.nodeRepository.GetAccess(ctx, usr.ID, folder.ID)
+	access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, folder.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	if access != domain.WriteAccess {
+	if access != domain.GroupWriteAccess {
 		return nil, apperror.ErrForbidden(map[string]string{"parentID": "usr does not have enought access"})
 	}
 
@@ -62,10 +64,9 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 	}
 
 	response := &CreateDocUseCaseResponse{}
-
+	// TODO: check
 	err = uc.unitOfWorkFactory.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
 		node := &domain.Node{
-			ParentID:    &arg.ParentID,
 			Type:        domain.FileNodeType,
 			Description: arg.Description,
 			Name:        arg.Title,
@@ -94,7 +95,6 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil
 	},
 	)
-
 	if err != nil {
 		deleteErr := uc.storage.Remove(ctx, uploadArgs.ID)
 		if deleteErr != nil {
@@ -114,6 +114,7 @@ func NewCreateDocUseCase(
 	ur domain.UsrRepository,
 	dr domain.DocRepository,
 	nr domain.NodeRepository,
+	gur domain.GroupUsrRepository,
 	uowf domain.UnitOfWorkFactory,
 	storage storage.Storage,
 	mainLogger *slog.Logger,
@@ -123,5 +124,5 @@ func NewCreateDocUseCase(
 	}
 
 	logger := mainLogger.With("usecase", "CreateDocUseCase")
-	return &CreateDocUseCase{ur, dr, nr, uowf, storage, logger}
+	return &CreateDocUseCase{ur, dr, nr, gur, uowf, storage, logger}
 }
