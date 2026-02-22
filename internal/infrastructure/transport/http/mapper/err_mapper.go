@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+
 	"ownned/internal/infrastructure/transport/http/model"
 	"ownned/pkg/apperror"
 
@@ -23,7 +24,6 @@ func ValidationError(err validator.ValidationErrors) *model.ErrView {
 		Message: "validation failed",
 		Detail:  detail,
 	}
-
 }
 
 func AppError(err *apperror.AppError) *model.ErrView {

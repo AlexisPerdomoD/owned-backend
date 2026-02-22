@@ -3,9 +3,19 @@ package domain
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type NodePath string
+
+const (
+	NodePathUsrRoot NodePath = "usrs"
+)
+
+func (p NodePath) NewChildPath(nodeID uuid.UUID) NodePath {
+	return NodePath(string(p) + "." + nodeID.String())
+}
 
 type NodeType string
 
@@ -20,11 +30,9 @@ type NodeLike interface {
 	IsFile() bool
 
 	IsFolder() bool
-
-	IsRoot() bool
 }
 
-type NodeID = string
+type NodeID = uuid.UUID
 
 type Node struct {
 	ID          NodeID

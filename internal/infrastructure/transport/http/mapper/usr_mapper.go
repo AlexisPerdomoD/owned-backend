@@ -10,7 +10,7 @@ func UsrViewFromDomain(usr *domain.Usr) *model.UsrView {
 		return nil
 	}
 	return &model.UsrView{
-		ID:        usr.ID,
+		ID:        usr.ID.String(),
 		Role:      usr.Role,
 		RoleTitle: string(usr.Role),
 		Firstname: usr.Firstname,

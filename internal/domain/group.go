@@ -3,22 +3,21 @@ package domain
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-type (
+// GroupID is a group identifier in the system
+type GroupID = uuid.UUID
 
-	// GroupID is a group identifier in the system
-	GroupID string
-
-	// Group represents a identifier to be tag to a Folder or file in the system and be associated with a user(s)
-	Group struct {
-		ID          GroupID
-		Name        string
-		Description string
-		CreatedAt   time.Time
-		UpdatedAt   time.Time
-	}
-)
+// Group represents a identifier to be tag to a Folder or file in the system and be associated with a user(s)
+type Group struct {
+	ID          GroupID
+	Name        string
+	Description string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
 
 type GroupAccess string
 
@@ -26,11 +25,6 @@ const (
 	GroupReadOnlyAccess GroupAccess = "read_only_access"
 	GroupWriteAccess    GroupAccess = "write_access"
 )
-
-type CreateGroup struct {
-	Name        string
-	Description string
-}
 
 type UpdateGroup struct {
 	Name        *string
@@ -47,7 +41,7 @@ type GroupRepository interface {
 	GetByID(ctx context.Context, id GroupID) (*Group, error)
 	// Create a new group in the system
 	// Returns an error if nil data is provided
-	Create(ctx context.Context, d *CreateGroup) error
+	Create(ctx context.Context, d *Group) error
 	// Update a group in the system
 	// Returns an error if nil data is provided
 	Update(ctx context.Context, d *UpdateGroup) error
@@ -74,8 +68,8 @@ type GroupUsrRepository interface {
 	GetByGroup(ctx context.Context, g GroupID) ([]GroupUsr, error)
 	// GetByUsr returns a list of groups accessed by a user
 	GetByUsr(ctx context.Context, usrID UsrID) ([]GroupUsr, error)
-	// GetAccess returns the access of a user to a Node based on usrs group access, if no access is found, it returns ErrNoAccess
-	GetNodeAccess(ctx context.Context, usrID UsrID, nodeID NodeID) (GroupAccess, error)
+	// GetAccess returns the access of a user to a Node based on usrs group access, if no access is found it returns nil
+	GetNodeAccess(ctx context.Context, usrID UsrID, nodeID NodeID) (*GroupAccess, error)
 	// Upsert access to a groups for a users
 	// Returns an error if nil data is provided
 	Upsert(ctx context.Context, d *UpsertGroupUsr) error

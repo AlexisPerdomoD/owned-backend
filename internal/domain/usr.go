@@ -3,9 +3,11 @@ package domain
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-type UsrID = string
+type UsrID = uuid.UUID
 
 type UsrRole string
 

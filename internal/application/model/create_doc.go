@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"ownned/internal/application/storage"
-	"ownned/internal/domain"
 	"strconv"
 
-	"github.com/google/uuid"
+	"ownned/internal/application/storage"
+	"ownned/internal/domain"
 )
 
 type CreateDocInputDTO struct {
@@ -26,12 +25,10 @@ func (dto *CreateDocInputDTO) Validate() error {
 
 func (dto *CreateDocInputDTO) GetUploadArgs() *storage.UploadArgs {
 	return &storage.UploadArgs{
-		ID:       uuid.New().String(),
 		Mimetype: dto.Mimetype,
 		Size:     dto.ExpectedSize,
 		File:     dto.File,
 	}
-
 }
 
 func NewCreateDocInputDtoFromMultipartOnDemand(r *http.Request) (*CreateDocInputDTO, error) {

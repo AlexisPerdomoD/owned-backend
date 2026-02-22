@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
+
 	"ownned/internal/infrastructure/auth"
 	"ownned/internal/infrastructure/transport/http/response"
 	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
-	"strings"
 )
 
 type AuthMiddleware struct {
@@ -44,7 +45,6 @@ func (m *AuthMiddleware) IsAuthenticated(next http.HandlerFunc) http.HandlerFunc
 
 		next(w, r.WithContext(ctx))
 	})
-
 }
 
 func NewAuthMiddleware(jwtValidator auth.JWTValidator) *AuthMiddleware {

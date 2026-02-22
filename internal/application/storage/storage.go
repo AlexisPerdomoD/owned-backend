@@ -4,19 +4,20 @@ package storage
 import (
 	"context"
 	"io"
+
+	"github.com/google/uuid"
 )
 
 type UploadArgs struct {
-	ID       string
 	Mimetype string
 	Size     uint64
 	File     io.Reader
 }
 
 type Storage interface {
-	Get(ctx context.Context, id string) (io.ReadCloser, error)
+	Get(ctx context.Context, key uuid.UUID) (io.ReadCloser, error)
 
-	Upload(ctx context.Context, args *UploadArgs) error
+	Upload(ctx context.Context, key uuid.UUID, args *UploadArgs) error
 
-	Remove(ctx context.Context, id string) error
+	Remove(ctx context.Context, key uuid.UUID) error
 }

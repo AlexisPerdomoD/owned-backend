@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/auth"
 	"ownned/internal/infrastructure/transport/http/decoder"
@@ -26,7 +27,7 @@ func (c *UsrHandler) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr, err := c.getUsrUseCase.Execute(r.Context(), usrID.String())
+	usr, err := c.getUsrUseCase.Execute(r.Context(), usrID)
 	if err != nil {
 		_ = response.WriteJSONError(w, err)
 		return
@@ -37,7 +38,7 @@ func (c *UsrHandler) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
-	//TODO: mejorar
+	// TODO: mejorar
 	defer func() { _ = r.Body.Close() }()
 
 	ctx := r.Context()
@@ -48,7 +49,6 @@ func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := decoder.CreateUsrDTOFromJSON(r.Body)
-
 	if err != nil {
 		_ = response.WriteJSONError(w, err)
 		return
@@ -59,7 +59,13 @@ func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr, err := c.createUsrUseCase.Execute(ctx, session.UserID, *body)
+	usrID, err := uuid.Parse(session.UserID)
+	if err != nil {
+		_ = response.WriteJSONError(w, err)
+		return
+	}
+
+	usr, err := c.createUsrUseCase.Execute(ctx, usrID, *body)
 	if err != nil {
 		_ = response.WriteJSONError(w, err)
 		return

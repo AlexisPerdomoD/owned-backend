@@ -77,5 +77,5 @@ migrate-up: check-migrate
 migrate-down: check-migrate
 	migrate -path $(PG_MIGRATION_DIR) -database "$(PG_DB_URL)" down
 
-start: migrate-up
+start: 
 	@go run ./cmd/server

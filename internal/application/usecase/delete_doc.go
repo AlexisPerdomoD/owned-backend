@@ -16,19 +16,6 @@ type DeleteDoceUseCase struct {
 	groupUsrRepository domain.GroupUsrRepository
 }
 
-func (uc *DeleteDoceUseCase) validateUsrAccess(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) error {
-	access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usrID, nodeID)
-	if err != nil {
-		return err
-	}
-
-	if access != domain.GroupWriteAccess {
-		return apperror.ErrForbidden(nil)
-	}
-
-	return nil
-}
-
 func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, docID domain.DocID) (*domain.Doc, error) {
 	usr, err := uc.usrRepository.GetByID(ctx, userID)
 	if err != nil {
@@ -36,7 +23,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 	}
 
 	if usr == nil {
-		return nil, apperror.ErrNotFound(map[string]string{"usrID": "usr entity was not found"})
+		return nil, apperror.ErrNotFound(map[string]string{"error": "usr entity was not found"})
 	}
 
 	doc, err := uc.docRepository.GetByID(ctx, docID)
@@ -45,13 +32,19 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 	}
 
 	if doc == nil {
-		return nil, apperror.ErrNotFound(map[string]string{"docID": "doc entity was not found"})
+		return nil, apperror.ErrNotFound(map[string]string{"error": "doc entity was not found"})
 	}
 
 	if usr.Role != domain.SuperUsrRole {
-		if err := uc.validateUsrAccess(ctx, usr.ID, doc.NodeID); err != nil {
+		access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, doc.NodeID)
+		if err != nil {
 			return nil, err
 		}
+
+		if access == nil || *access != domain.GroupWriteAccess {
+			return nil, apperror.ErrForbidden(map[string]string{"error": "user does not have access to remove this doc"})
+		}
+
 	}
 
 	if err := uc.storage.Remove(ctx, doc.ID); err != nil {

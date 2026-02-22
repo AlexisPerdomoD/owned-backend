@@ -2,17 +2,22 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
+
 	"ownned/internal/application/model"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
-	"ownned/pkg/concurrent"
+	"ownned/pkg/col"
+
+	"github.com/google/uuid"
 )
 
 type CreateUsrUseCase struct {
 	ur     domain.UsrRepository
 	nr     domain.NodeRepository
+	gur    domain.GroupUsrRepository
 	uow    domain.UnitOfWorkFactory
 	logger *slog.Logger
 }
@@ -22,14 +27,13 @@ func (uc *CreateUsrUseCase) Execute(
 	creatorID domain.UsrID,
 	args model.CreateUsrInputDTO,
 ) (*domain.Usr, error) {
-
 	creator, err := uc.ur.GetByID(ctx, creatorID)
 	if err != nil {
 		return nil, err
 	}
 
 	if creator.Role != domain.SuperUsrRole {
-		return nil, apperror.ErrForbidden(map[string]string{"general": "usr does not have enought privileges to do this action"})
+		return nil, apperror.ErrForbidden(map[string]string{"error": "Usr does not have enought privileges to do this action"})
 	}
 
 	usr, err := uc.ur.GetByUsername(ctx, args.Username)
@@ -38,61 +42,106 @@ func (uc *CreateUsrUseCase) Execute(
 	}
 
 	if usr != nil {
-		return nil, apperror.ErrConflic(map[string]string{"general": "username already in use"})
+		return nil, apperror.ErrConflic(map[string]string{"error": "Username already in use"})
 	}
 
-	newUsr := args.ToDomain()
-	if err = uc.uow.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
-
-		if err := tx.UsrRepository().Create(txCtx, newUsr); err != nil {
-			return err
-		}
-
-		if newUsr.Role != domain.SuperUsrRole && len(args.Access) > 0 {
-			nodes, err := tx.NodeRepository().GetByIDs(txCtx, args.Access)
-			if err != nil {
-				return err
-			}
-
-			result := concurrent.MapConcurrent(nodes, func(n domain.Node) (any, error) {
-				access := domain.ReadOnlyAccess
-
-				if newUsr.Role == domain.NormalUsrRole {
-					access = domain.WriteAccess
-				}
-
-				return nil, tx.NodeRepository().UpdateAccess(txCtx, newUsr.ID, n.ID, access)
-			}, 1000)
-
-			for _, v := range result {
-				if v.IsOk() {
-					continue
-				}
-
-				return v.Error
-			}
-
-		}
-
-		return nil
-	}); err != nil {
-		uc.logger.Log(ctx, slog.LevelDebug, "transaction failed:", "err", err)
+	usrID, err := uuid.NewV7()
+	if err != nil {
 		return nil, err
 	}
 
-	return newUsr, nil
+	usrGroupID, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
+	usrNodeRootID, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
+	usr = &domain.Usr{
+		ID:        usrID,
+		Username:  args.Username,
+		Role:      args.Role,
+		Firstname: args.Firstname,
+		Lastname:  args.Lastname,
+	}
+
+	usrNodeRoot := &domain.Node{
+		ID:          usrNodeRootID,
+		Name:        fmt.Sprintf("root_%s", args.Username),
+		Description: "Root node for user " + args.Username,
+		Type:        domain.FolderNodeType,
+		Path:        domain.NodePathUsrRoot.NewChildPath(usr.ID),
+	}
+
+	group := &domain.Group{
+		ID:          usrGroupID,
+		Name:        fmt.Sprintf("group_%s", args.Username),
+		Description: "Group for user " + args.Username,
+	}
+
+	nodeRootGroup := &domain.UpsertGroupNode{
+		GroupID: group.ID,
+		NodeID:  usrNodeRoot.ID,
+	}
+
+	usrGroups := col.Set[domain.UpsertGroupUsr]{}
+	usrGroups.Add(domain.UpsertGroupUsr{
+		GroupID: group.ID,
+		UsrID:   usr.ID,
+		Access:  domain.GroupWriteAccess,
+	})
+
+	if len(args.Access) > 0 {
+		for _, v := range args.Access {
+			usrGroups.Add(domain.UpsertGroupUsr{
+				GroupID: v.GroupID,
+				UsrID:   usr.ID,
+				Access:  v.Access,
+			})
+		}
+	}
+
+	err = uc.uow.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
+		if err := tx.UsrRepository().Create(txCtx, usr); err != nil {
+			return err
+		}
+
+		if err := tx.NodeRepository().Create(txCtx, usrNodeRoot); err != nil {
+			return err
+		}
+
+		if err := tx.GroupRepository().Create(txCtx, group); err != nil {
+			return err
+		}
+
+		if err := tx.GroupNodeRepository().Upsert(txCtx, nodeRootGroup); err != nil {
+			return err
+		}
+
+		if err := tx.GroupUsrRepository().UpsertAll(txCtx, usrGroups.Slice()); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return usr, err
 }
 
 func NewCreateUsrUseCase(
 	ur domain.UsrRepository,
 	nr domain.NodeRepository,
+	gur domain.GroupUsrRepository,
 	uow domain.UnitOfWorkFactory,
 	mainLogger *slog.Logger,
 ) *CreateUsrUseCase {
-	if ur == nil || nr == nil || uow == nil || mainLogger == nil {
+	if ur == nil || nr == nil || uow == nil || mainLogger == nil || gur == nil {
 		log.Panicln("NewCreateUsrUseCase received a nil reference as dependency")
 	}
 
 	logger := mainLogger.With("usecase", "CreateUsrUseCase")
-	return &CreateUsrUseCase{ur, nr, uow, logger}
+	return &CreateUsrUseCase{ur, nr, gur, uow, logger}
 }

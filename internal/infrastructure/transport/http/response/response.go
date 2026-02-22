@@ -1,8 +1,10 @@
+// Package response contains the response functions for the transport layer
 package response
 
 import (
 	"encoding/json"
 	"net/http"
+
 	"ownned/internal/infrastructure/transport/http/mapper"
 )
 

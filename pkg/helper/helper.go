@@ -1,6 +1,11 @@
+// Package helper provides helper functions for common operations.
 package helper
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 // Map applies the callback function cb to each element in the input slice and returns a new slice
 // containing the results. If the input slice is nil, it returns nil. If the input slice is empty,
@@ -26,4 +31,13 @@ func NotNilOrPanic(v any, entity string) {
 	if any(v) == nil {
 		panic(fmt.Sprintf("%s provided as nil", entity))
 	}
+}
+
+func MustUUIDV7() uuid.UUID {
+	id, err := uuid.NewV7()
+	if err != nil {
+		panic(err)
+	}
+
+	return id
 }

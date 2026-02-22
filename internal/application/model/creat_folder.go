@@ -8,12 +8,12 @@ import (
 )
 
 type CreateFolderInputDTO struct {
-	ParentID    *domain.NodeID `json:"parent_id"`
-	Name        string         `json:"name" validate:"required,alphanum,min=1,max=255,excludes=\\/"`
-	Description string         `json:"description" validate:"max=255"`
+	ParentID    domain.NodeID `json:"parent_id" validate:"required"`
+	Name        string        `json:"name" validate:"required,alphanum,min=1,max=255,excludes=\\/"`
+	Description string        `json:"description" validate:"max=255"`
 }
 
-func (dto *CreateFolderInputDTO) GetData() (parentID *domain.NodeID, node *domain.Node) {
+func (dto *CreateFolderInputDTO) GetData() (parentID domain.NodeID, node *domain.Node) {
 	return dto.ParentID, &domain.Node{
 		Name:        dto.Name,
 		Description: dto.Description,

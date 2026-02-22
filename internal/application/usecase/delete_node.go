@@ -4,23 +4,81 @@ import (
 	"context"
 	"log"
 	"log/slog"
+	"time"
+
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 	"ownned/pkg/concurrent"
-	"time"
 )
 
 type DeleteNodeUseCase struct {
-	usrRepository  domain.UsrRepository
-	nodeRepository domain.NodeRepository
-	docRepository  domain.DocRepository
-	storage        storage.Storage
-	logger         *slog.Logger
+	usrRepository      domain.UsrRepository
+	nodeRepository     domain.NodeRepository
+	docRepository      domain.DocRepository
+	groupUsrRepository domain.GroupUsrRepository
+	storage            storage.Storage
+	logger             *slog.Logger
+}
+
+func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) error {
+	usr, err := uc.usrRepository.GetByID(ctx, usrID)
+	if err != nil {
+		return err
+	}
+
+	if usr == nil {
+		return apperror.ErrUnauthenticated(nil)
+	}
+
+	if usr.Role != domain.LimitedUsrRole {
+		return apperror.ErrForbidden(map[string]string{"error": "usr does not have access to do this action"})
+	}
+
+	node, err := uc.nodeRepository.GetByID(ctx, nodeID)
+	if err != nil {
+		return err
+	}
+
+	if node == nil {
+		return apperror.ErrNotFound(map[string]string{"error": "node was not found by id=" + nodeID.String()})
+	}
+
+	if usr.Role != domain.SuperUsrRole {
+		access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, node.ID)
+		if err != nil {
+			return err
+		}
+
+		if access == nil || *access != domain.GroupWriteAccess {
+			return apperror.ErrForbidden(
+				map[string]string{
+					"error":  "Not enought privileges to delete node",
+					"nodeID": "usr does not have permission to do this action over this resource nodeID=" + node.ID.String(),
+				},
+			)
+		}
+	}
+
+	docs, err := uc.docRepository.GetAllFromNodeID(ctx, node.ID)
+	if err != nil {
+		return err
+	}
+
+	// IS EXPECTED TO NODE DELETIONS TO DELETE EVERY CHILDREN AND ALSO DOCS ASSOCIATE ON CASCADE
+	if err := uc.nodeRepository.Delete(ctx, node.ID); err != nil {
+		return err
+	}
+
+	if len(docs) > 0 {
+		// IS EXPECTED TO DELETE DOCS STATICS ON BACKGROUND ASYNC
+		go uc.deleteDocsAsync(docs)
+	}
+
+	return nil
 }
 
 func (uc *DeleteNodeUseCase) deleteDocsAsync(docs []domain.Doc) {
-
 	logger := uc.logger.With("scope", "deleteDocsAsync")
 	storage := uc.storage
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -49,78 +107,21 @@ func (uc *DeleteNodeUseCase) deleteDocsAsync(docs []domain.Doc) {
 			"err", deletion.Error,
 		)
 	}
-
-}
-
-func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) error {
-	usr, err := uc.usrRepository.GetByID(ctx, usrID)
-	if err != nil {
-		return err
-	}
-
-	if usr == nil {
-		return apperror.ErrUnauthenticated(nil)
-	}
-
-	if usr.Role != domain.LimitedUsrRole {
-		return apperror.ErrForbidden(map[string]string{"general": "usr does not have access to do this action"})
-	}
-
-	node, err := uc.nodeRepository.GetByID(ctx, nodeID)
-	if err != nil {
-		return err
-	}
-
-	if node == nil {
-		return apperror.ErrNotFound(map[string]string{"nodeID": "entity was not found by id=" + nodeID})
-	}
-
-	if usr.Role != domain.SuperUsrRole {
-		access, err := uc.nodeRepository.GetAccess(ctx, usr.ID, node.ID)
-		if err != nil {
-			return err
-		}
-
-		if access != domain.WriteAccess {
-			return apperror.ErrForbidden(
-				map[string]string{
-					"general": "Not enought privileges to delete node",
-					"nodeID":  "usr does not have permission to do this action over this resource nodeID=" + node.ID,
-				},
-			)
-		}
-	}
-
-	docs, err := uc.docRepository.GetByNodeID(ctx, node.ID)
-	if err != nil {
-		return err
-	}
-
-	// IS EXPECTED TO NODE DELETIONS TO DELETE EVERY CHILDREN AND ALSO DOCS ASSOCIATE ON CASCADE
-	if err := uc.nodeRepository.Delete(ctx, node.ID); err != nil {
-		return err
-	}
-
-	if len(docs) > 0 {
-		go uc.deleteDocsAsync(docs)
-	}
-
-	return nil
 }
 
 func NewDeleteNodeUseCase(
 	ur domain.UsrRepository,
 	nr domain.NodeRepository,
 	dr domain.DocRepository,
+	gur domain.GroupUsrRepository,
 	storage storage.Storage,
 	mainLogger *slog.Logger,
 ) *DeleteNodeUseCase {
-	if ur == nil || nr == nil || dr == nil || storage == nil || mainLogger == nil {
+	if ur == nil || nr == nil || dr == nil || gur == nil || storage == nil || mainLogger == nil {
 		log.Panicln("DeleteNodeUseCase some dependencies provided were nil")
 	}
 
 	logger := mainLogger.With("usecase", "DeleteNodeUseCase")
 
-	return &DeleteNodeUseCase{ur, nr, dr, storage, logger}
-
+	return &DeleteNodeUseCase{ur, nr, dr, gur, storage, logger}
 }

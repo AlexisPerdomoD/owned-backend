@@ -8,6 +8,8 @@ import (
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+
+	"github.com/google/uuid"
 )
 
 type CreateDocUseCaseResponse struct {
@@ -41,11 +43,11 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 	}
 
 	if folder == nil {
-		return nil, apperror.ErrNotFound(map[string]string{"parentID": "folder was not found"})
+		return nil, apperror.ErrNotFound(map[string]string{"error": "Folder was not found"})
 	}
 
 	if folder.Type != domain.FolderNodeType {
-		return nil, apperror.ErrBadRequest(map[string]string{"parentID": "does not point to a folder"})
+		return nil, apperror.ErrBadRequest(map[string]string{"error": "parentID does not point to a folder"})
 	}
 
 	access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, folder.ID)
@@ -53,61 +55,73 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, err
 	}
 
-	if access != domain.GroupWriteAccess {
-		return nil, apperror.ErrForbidden(map[string]string{"parentID": "usr does not have enought access"})
+	if access == nil || *access != domain.GroupWriteAccess {
+		return nil, apperror.ErrForbidden(map[string]string{"error": "Usr does not have enought access"})
 	}
 
-	uploadArgs := arg.GetUploadArgs()
-
-	if err = uc.storage.Upload(ctx, uploadArgs); err != nil {
+	nodeID, err := uuid.NewV7()
+	if err != nil {
 		return nil, err
 	}
 
-	response := &CreateDocUseCaseResponse{}
-	// TODO: check
-	err = uc.unitOfWorkFactory.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
-		node := &domain.Node{
+	docID, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
+	uploadArgs := arg.GetUploadArgs()
+	if err = uc.storage.Upload(ctx, docID, uploadArgs); err != nil {
+		return nil, err
+	}
+
+	response := &CreateDocUseCaseResponse{
+		Node: &domain.Node{
+			ID:          nodeID,
 			Type:        domain.FileNodeType,
 			Description: arg.Description,
 			Name:        arg.Title,
-		}
-
-		if err := tx.NodeRepository().Create(txCtx, node); err != nil {
-			return err
-		}
-
-		doc := &domain.Doc{
-			ID:          uploadArgs.ID,
+			Path:        folder.Path.NewChildPath(nodeID),
+		},
+		Doc: &domain.Doc{
+			ID:          docID,
+			NodeID:      nodeID,
 			MimeType:    uploadArgs.Mimetype,
 			Title:       arg.Title,
 			Description: arg.Description,
-			NodeID:      node.ID,
 			UsrID:       usr.ID,
 			SizeInBytes: uint64(uploadArgs.Size),
-		}
+		},
+	}
 
-		if err := tx.DocRepository().Create(txCtx, doc); err != nil {
+	if err := uc.saveDoc(ctx, response); err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (uc *CreateDocUseCase) saveDoc(ctx context.Context, response *CreateDocUseCaseResponse) error {
+	err := uc.unitOfWorkFactory.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
+		if err := tx.NodeRepository().Create(txCtx, response.Node); err != nil {
 			return err
 		}
 
-		response.Doc = doc
-		response.Node = node
+		if err := tx.DocRepository().Create(txCtx, response.Doc); err != nil {
+			return err
+		}
+
 		return nil
-	},
-	)
+	})
 	if err != nil {
-		deleteErr := uc.storage.Remove(ctx, uploadArgs.ID)
+		deleteErr := uc.storage.Remove(ctx, response.Doc.ID)
 		if deleteErr != nil {
 			uc.logger.Warn("error deleting file after document creation err",
 				"err",
 				deleteErr,
 			)
 		}
-
-		return nil, err
 	}
 
-	return response, nil
+	return err
 }
 
 func NewCreateDocUseCase(

@@ -47,10 +47,11 @@ func main() {
 
 	var usrRepository domain.UsrRepository = pg.NewUsrRepository(db)
 	var nodeRepository domain.NodeRepository = pg.NewNodeRepository(db)
+	var groupUsrRepository domain.GroupUsrRepository = pg.NewGroupUsrRepository(db)
 	// var docRepository domain.DocRepository = repo.NewDocRepository()
 	var unitOfWorkFactory domain.UnitOfWorkFactory = pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
-	createUsr := usecase.NewCreateUsrUseCase(usrRepository, nodeRepository, unitOfWorkFactory, l)
+	createUsr := usecase.NewCreateUsrUseCase(usrRepository, nodeRepository, groupUsrRepository, unitOfWorkFactory, l)
 	getUsr := usecase.NewGetUsrUseCase(usrRepository)
 	usrHandler := handler.NewUsrHandler(createUsr, getUsr)
 

@@ -24,6 +24,22 @@ type UnitOfWork interface {
 	// All operations performed through the returned repository while Do is
 	// executing must participate in the active transaction.
 	UsrRepository() UsrRepository
+
+	// GroupRepository returns a GroupRepository bound to the current UnitOfWork.
+	//
+	// All operations performed through the returned repository while Do is
+	// executing must participate in the active transaction.
+	GroupRepository() GroupRepository
+	// GroupUsrRepository returns a GroupUsrRepository bound to the current UnitOfWork.
+	//
+	// All operations performed through the returned repository while Do is
+	// executing must participate in the active transaction.
+	GroupUsrRepository() GroupUsrRepository
+	// GroupNodeRepository returns a GroupNodeRepository bound to the current UnitOfWork.
+	//
+	// All operations performed through the returned repository while Do is
+	// executing must participate in the active transaction.
+	GroupNodeRepository() GroupNodeRepository
 }
 
 type UnitOfWorkFactory interface {

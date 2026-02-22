@@ -1,8 +1,10 @@
+// Package decoder contains the decoders for the transport layer
 package decoder
 
 import (
 	"encoding/json"
 	"io"
+
 	"ownned/internal/application/model"
 )
 

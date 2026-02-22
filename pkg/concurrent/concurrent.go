@@ -1,3 +1,4 @@
+// Package concurrent provides helper functions for concurrent operations.
 package concurrent
 
 import "sync"

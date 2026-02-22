@@ -3,8 +3,9 @@ package pg
 import (
 	"context"
 	"log/slog"
-	"ownned/internal/domain"
 	"time"
+
+	"ownned/internal/domain"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -12,9 +13,12 @@ import (
 type UnitOfWork struct {
 	tx *sqlx.Tx
 
-	nodeRepository domain.NodeRepository
-	usrRepository  domain.UsrRepository
-	docRepository  domain.DocRepository
+	nodeRepository      *NodeRepository
+	usrRepository       *UsrRepository
+	docRepository       *DocRepository
+	groupRepository     *GroupRepository
+	groupUsrRepository  *GroupUsrRepository
+	groupNodeRepository *GroupNodeRepository
 }
 
 func (u *UnitOfWork) NodeRepository() domain.NodeRepository {
@@ -41,9 +45,33 @@ func (u *UnitOfWork) UsrRepository() domain.UsrRepository {
 	return u.usrRepository
 }
 
-type UnitOfWorkFactory struct{
-	db *sqlx.DB
-	log *slog.Logger
+func (u *UnitOfWork) GroupRepository() domain.GroupRepository {
+	if u.groupRepository == nil {
+		u.groupRepository = NewGroupRepository(u.tx)
+	}
+
+	return u.groupRepository
+}
+
+func (u *UnitOfWork) GroupUsrRepository() domain.GroupUsrRepository {
+	if u.groupUsrRepository == nil {
+		u.groupUsrRepository = NewGroupUsrRepository(u.tx)
+	}
+
+	return u.groupUsrRepository
+}
+
+func (u *UnitOfWork) GroupNodeRepository() domain.GroupNodeRepository {
+	if u.groupNodeRepository == nil {
+		u.groupNodeRepository = NewGroupNodeRepository(u.tx)
+	}
+
+	return u.groupNodeRepository
+}
+
+type UnitOfWorkFactory struct {
+	db      *sqlx.DB
+	log     *slog.Logger
 	timeout time.Duration
 }
 
@@ -63,7 +91,7 @@ func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(ctx context.Context,
 		}
 	}()
 
-	uow := &UnitOfWork{tx:tx}
+	uow := &UnitOfWork{tx: tx}
 	txCtx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()
 
@@ -76,7 +104,6 @@ func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(ctx context.Context,
 	err = tx.Commit()
 	return err
 }
-
 
 func NewUnitOfWorkFactory(db *sqlx.DB, log *slog.Logger, timeout time.Duration) *UnitOfWorkFactory {
 	return &UnitOfWorkFactory{db, log, timeout}
