@@ -9,14 +9,14 @@ import (
 	"ownned/pkg/apperror"
 )
 
-type GetNodeByIDUseCase struct {
+type GetNodeUseCase struct {
 	ur  domain.UsrRepository
 	nr  domain.NodeRepository
 	dr  domain.DocRepository
 	gur domain.GroupUsrRepository
 }
 
-func (uc *GetNodeByIDUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) (domain.NodeLike, error) {
+func (uc *GetNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) (domain.NodeLike, error) {
 	nodeRepository := uc.nr
 	usrRepository := uc.ur
 	docRepository := uc.dr
@@ -76,10 +76,10 @@ func NewGetNodeByIDUseCase(
 	nr domain.NodeRepository,
 	dr domain.DocRepository,
 	gur domain.GroupUsrRepository,
-) *GetNodeByIDUseCase {
+) *GetNodeUseCase {
 	if ur == nil || nr == nil || dr == nil {
 		log.Panicln("NewGetNodeByIDUseCase received a nil reference as dependency")
 	}
 
-	return &GetNodeByIDUseCase{ur, nr, dr, gur}
+	return &GetNodeUseCase{ur, nr, dr, gur}
 }
