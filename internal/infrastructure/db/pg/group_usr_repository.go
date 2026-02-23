@@ -13,11 +13,7 @@ type GroupUsrRepository struct {
 	db sqlx.ExtContext
 }
 
-func (r *GroupUsrRepository) GetByGroup(ctx context.Context, g domain.GroupID) ([]domain.GroupUsr, error) {
-	return nil, apperror.ErrNotImplemented(nil)
-}
-
-func (r *GroupUsrRepository) GetByUsr(ctx context.Context, usrID domain.UsrID) ([]domain.GroupUsr, error) {
+func (r *GroupUsrRepository) GetGroupAccess(ctx context.Context, usrID domain.UsrID, groupID domain.GroupID) (*domain.GroupAccess, error) {
 	return nil, apperror.ErrNotImplemented(nil)
 }
 

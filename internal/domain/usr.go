@@ -36,10 +36,18 @@ type Usr struct {
 	UpdatedAt time.Time
 }
 
+type UsrGroupAccess struct {
+	Usr
+	Access     GroupAccess
+	AssignDate time.Time
+}
+
 type UsrRepository interface {
 	GetByID(ctx context.Context, id UsrID) (*Usr, error)
 
 	GetByUsername(ctx context.Context, username string) (*Usr, error)
+
+	GetByGroup(ctx context.Context, groupID GroupID) ([]UsrGroupAccess, error)
 
 	Create(ctx context.Context, d *Usr) error
 

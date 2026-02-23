@@ -33,6 +33,10 @@ func (r *NodeRepository) GetRootByGroups(ctx context.Context, groups []domain.Gr
 	return nil, apperror.ErrNotImplemented(nil)
 }
 
+func (r *NodeRepository) GetByGroup(ctx context.Context, groupID domain.GroupID) ([]domain.NodeGroupAttach, error) {
+	return nil, apperror.ErrNotImplemented(nil)
+}
+
 func (r *NodeRepository) Create(ctx context.Context, n *domain.Node) error {
 	return apperror.ErrNotImplemented(nil)
 }

@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 
@@ -17,6 +18,10 @@ func (r *UsrRepository) GetByID(ctx context.Context, id domain.UsrID) (*domain.U
 }
 
 func (r *UsrRepository) GetByUsername(ctx context.Context, username string) (*domain.Usr, error) {
+	return nil, apperror.ErrNotImplemented(nil)
+}
+
+func (r *UsrRepository) GetByGroup(ctx context.Context, groupID domain.GroupID) ([]domain.UsrGroupAccess, error) {
 	return nil, apperror.ErrNotImplemented(nil)
 }
 

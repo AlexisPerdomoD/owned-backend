@@ -56,6 +56,11 @@ func (n *Node) IsFolder() bool {
 	return n.Type == FolderNodeType
 }
 
+type NodeGroupAttach struct {
+	Node
+	AssignDate time.Time
+}
+
 type NodeRepository interface {
 	GetByID(ctx context.Context, id NodeID) (*Node, error)
 
@@ -66,6 +71,8 @@ type NodeRepository interface {
 	GetRoot(ctx context.Context) ([]Node, error)
 
 	GetRootByGroups(ctx context.Context, groups []GroupID) ([]Node, error)
+
+	GetByGroup(ctx context.Context, groupID GroupID) ([]NodeGroupAttach, error)
 
 	Create(ctx context.Context, n *Node) error
 

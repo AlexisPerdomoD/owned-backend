@@ -17,6 +17,14 @@ func (r *GroupRepository) GetByID(ctx context.Context, id domain.GroupID) (*doma
 	return nil, apperror.ErrNotImplemented(nil)
 }
 
+func (r *GroupRepository) GetByUsr(ctx context.Context, usrID domain.UsrID) ([]domain.GroupUsr, error) {
+	return nil, apperror.ErrNotImplemented(nil)
+}
+
+func (r *GroupRepository) GetByNode(ctx context.Context, nodeID domain.NodeID) ([]domain.GroupNode, error) {
+	return nil, apperror.ErrNotImplemented(nil)
+}
+
 func (r *GroupRepository) Create(ctx context.Context, d *domain.Group) error {
 	return apperror.ErrNotImplemented(nil)
 }

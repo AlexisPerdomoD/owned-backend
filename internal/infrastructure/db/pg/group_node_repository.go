@@ -13,14 +13,6 @@ type GroupNodeRepository struct {
 	db sqlx.ExtContext
 }
 
-func (r *GroupNodeRepository) GetByNode(ctx context.Context, nodeID domain.NodeID) ([]domain.GroupNode, error) {
-	return nil, apperror.ErrNotImplemented(nil)
-}
-
-func (r *GroupNodeRepository) GetByGroup(ctx context.Context, groupID domain.GroupID) ([]domain.GroupNode, error) {
-	return nil, apperror.ErrNotImplemented(nil)
-}
-
 func (r *GroupNodeRepository) Upsert(ctx context.Context, d *domain.UpsertGroupNode) error {
 	return apperror.ErrNotImplemented(nil)
 }

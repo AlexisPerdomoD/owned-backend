@@ -9,9 +9,9 @@ import (
 )
 
 type GetRootNodesUseCase struct {
-	nodeRepository     domain.NodeRepository
-	usrRepository      domain.UsrRepository
-	groupUsrRepository domain.GroupUsrRepository
+	nodeRepository  domain.NodeRepository
+	usrRepository   domain.UsrRepository
+	groupRepository domain.GroupRepository
 }
 
 func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) ([]domain.Node, error) {
@@ -29,7 +29,7 @@ func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) 
 		return uc.nodeRepository.GetRoot(ctx)
 
 	case domain.LimitedUsrRole, domain.NormalUsrRole:
-		groups, err := uc.groupUsrRepository.GetByUsr(ctx, usr.ID)
+		groups, err := uc.groupRepository.GetByUsr(ctx, usr.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -49,10 +49,10 @@ func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) 
 func NewGetRootNodesUseCase(
 	nr domain.NodeRepository,
 	ur domain.UsrRepository,
-	gur domain.GroupUsrRepository,
+	gr domain.GroupRepository,
 ) *GetRootNodesUseCase {
 	helper.NotNilOrPanic(nr, "NodeRepository")
 	helper.NotNilOrPanic(ur, "UsrRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
-	return &GetRootNodesUseCase{nr, ur, gur}
+	helper.NotNilOrPanic(gr, "GroupUsrRepository")
+	return &GetRootNodesUseCase{nr, ur, gr}
 }
