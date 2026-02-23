@@ -7,6 +7,16 @@ import (
 	"ownned/internal/domain"
 )
 
+type FileNodeDTO struct {
+	domain.Node
+	Doc domain.Doc
+}
+
+type FolderNodeDTO struct {
+	domain.Node
+	Children []domain.Node
+}
+
 type CreateFolderInputDTO struct {
 	ParentID    domain.NodeID `json:"parent_id" validate:"required"`
 	Name        string        `json:"name" validate:"required,alphanum,min=1,max=255,excludes=\\/"`
