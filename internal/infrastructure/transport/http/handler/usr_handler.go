@@ -59,7 +59,7 @@ func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usrID, err := uuid.Parse(session.UserID)
+	usrID, err := uuid.Parse(session.UsrID)
 	if err != nil {
 		_ = response.WriteJSONError(w, err)
 		return

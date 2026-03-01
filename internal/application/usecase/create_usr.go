@@ -6,7 +6,7 @@ import (
 	"log"
 	"log/slog"
 
-	"ownned/internal/application/model"
+	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 	"ownned/pkg/col"
@@ -25,7 +25,7 @@ type CreateUsrUseCase struct {
 func (uc *CreateUsrUseCase) Execute(
 	ctx context.Context,
 	creatorID domain.UsrID,
-	args model.CreateUsrInputDTO,
+	args dto.CreateUsrInputDTO,
 ) (*domain.Usr, error) {
 	creator, err := uc.ur.GetByID(ctx, creatorID)
 	if err != nil {
@@ -104,7 +104,8 @@ func (uc *CreateUsrUseCase) Execute(
 		}
 	}
 
-	err = uc.uow.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
+	err = uc.uow.Do(ctx, func(tx domain.UnitOfWork) error {
+		txCtx := tx.Ctx()
 		if err := tx.UsrRepository().Create(txCtx, usr); err != nil {
 			return err
 		}

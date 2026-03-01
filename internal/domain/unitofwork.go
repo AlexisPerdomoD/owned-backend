@@ -8,6 +8,12 @@ import "context"
 // atomically. All repository methods accessed through a UnitOfWork are expected
 // to operate within the same underlying transaction while Do is executing.
 type UnitOfWork interface {
+	// ctx returns the context associated with the current UnitOfWork.
+	//
+	// The returned context is used for all I/O operations and must respect
+	// cancellation and deadlines.
+	Ctx() context.Context
+
 	// NodeRepository returns a NodeRepository bound to the current UnitOfWork.
 	//
 	// All operations performed through the returned repository while Do is
@@ -24,6 +30,12 @@ type UnitOfWork interface {
 	// All operations performed through the returned repository while Do is
 	// executing must participate in the active transaction.
 	UsrRepository() UsrRepository
+
+	// UsrPwdRepository returns a UsrPwdRepository bound to the current UnitOfWork.
+	//
+	// All operations performed through the returned repository while Do is
+	// executing must participate in the active transaction.
+	UsrPwdRepository() UsrPwdRepository
 
 	// GroupRepository returns a GroupRepository bound to the current UnitOfWork.
 	//
@@ -54,7 +66,6 @@ type UnitOfWorkFactory interface {
 	// from this UnitOfWork during the execution of the function operate on the
 	// same transactional state.
 	//
-	// The context passed to the function should be used for all I/O operations
-	// and must respect cancellation and deadlines.
-	Do(ctx context.Context, fn func(ctx context.Context, uow UnitOfWork) error) error
+
+	Do(ctx context.Context, fn func(uow UnitOfWork) error) error
 }

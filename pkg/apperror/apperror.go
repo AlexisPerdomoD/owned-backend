@@ -1,3 +1,4 @@
+// Package apperror provides a type for application errors.
 package apperror
 
 import "errors"

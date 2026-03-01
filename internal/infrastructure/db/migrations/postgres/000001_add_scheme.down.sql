@@ -35,6 +35,7 @@ DROP TABLE IF EXISTS fs.groups;
 -- ============================
 -- Users
 -- ============================
+DROP TABLE IF EXISTS fs.usr_pwds;
 DROP TRIGGER IF EXISTS trg_usrs_updated_at ON fs.usrs;
 DROP TABLE IF EXISTS fs.usrs;
 

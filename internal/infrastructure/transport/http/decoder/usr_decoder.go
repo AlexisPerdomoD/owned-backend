@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"io"
 
-	"ownned/internal/application/model"
+	"ownned/internal/application/dto"
 )
 
-func CreateUsrDTOFromJSON(r io.Reader) (*model.CreateUsrInputDTO, error) {
-	var dto model.CreateUsrInputDTO
+func CreateUsrDTOFromJSON(r io.Reader) (*dto.CreateUsrInputDTO, error) {
+	var dto dto.CreateUsrInputDTO
 	decoder := json.NewDecoder(r)
 	decoder.DisallowUnknownFields()
 

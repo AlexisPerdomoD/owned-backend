@@ -11,14 +11,19 @@ import (
 )
 
 type UnitOfWork struct {
-	tx *sqlx.Tx
-
+	tx                  *sqlx.Tx
+	ctx                 context.Context
 	nodeRepository      *NodeRepository
 	usrRepository       *UsrRepository
+	usrPwdRepository    *UsrPwdRepository
 	docRepository       *DocRepository
 	groupRepository     *GroupRepository
 	groupUsrRepository  *GroupUsrRepository
 	groupNodeRepository *GroupNodeRepository
+}
+
+func (u *UnitOfWork) Ctx() context.Context {
+	return u.ctx
 }
 
 func (u *UnitOfWork) NodeRepository() domain.NodeRepository {
@@ -43,6 +48,14 @@ func (u *UnitOfWork) UsrRepository() domain.UsrRepository {
 	}
 
 	return u.usrRepository
+}
+
+func (u *UnitOfWork) UsrPwdRepository() domain.UsrPwdRepository {
+	if u.usrPwdRepository == nil {
+		u.usrPwdRepository = NewUsrPwdRepository(u.tx)
+	}
+
+	return u.usrPwdRepository
 }
 
 func (u *UnitOfWork) GroupRepository() domain.GroupRepository {
@@ -75,8 +88,11 @@ type UnitOfWorkFactory struct {
 	timeout time.Duration
 }
 
-func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(ctx context.Context, tx domain.UnitOfWork) error) error {
-	tx, err := f.db.BeginTxx(ctx, nil)
+func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(tx domain.UnitOfWork) error) error {
+	txCtx, cancel := context.WithTimeout(ctx, f.timeout)
+	defer cancel()
+
+	tx, err := f.db.BeginTxx(txCtx, nil)
 	if err != nil {
 		f.log.WarnContext(ctx, "BeginTxx failed", slog.String("err", err.Error()))
 		return err
@@ -90,14 +106,10 @@ func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(ctx context.Context,
 			f.log.WarnContext(ctx, "Rollback failed", slog.String("err", rollbackErr.Error()))
 		}
 	}()
-
-	uow := &UnitOfWork{tx: tx}
-	txCtx, cancel := context.WithTimeout(ctx, f.timeout)
-	defer cancel()
-
-	err = op(txCtx, uow)
+	uow := &UnitOfWork{tx: tx, ctx: txCtx}
+	err = op(uow)
 	if err != nil {
-		f.log.DebugContext(ctx, "error happened while executing unit of work", "err", err)
+		f.log.DebugContext(txCtx, "error happened while executing unit of work", "err", err)
 		return err
 	}
 

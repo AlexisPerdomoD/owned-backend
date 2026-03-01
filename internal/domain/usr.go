@@ -55,3 +55,9 @@ type UsrRepository interface {
 
 	Delete(ctx context.Context, id UsrID) error
 }
+
+type UsrPwdRepository interface {
+	SetPwd(ctx context.Context, id UsrID, pwd []byte) error
+
+	GetPwd(ctx context.Context, id UsrID) ([]byte, error)
+}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"ownned/internal/application/model"
+	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 )
@@ -15,7 +15,7 @@ type CreateFolderUseCase struct {
 	groupUsrRepository domain.GroupUsrRepository
 }
 
-func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.UsrID, dto *model.CreateFolderInputDTO) (*domain.Node, error) {
+func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.UsrID, dto *dto.CreateFolderInputDTO) (*domain.Node, error) {
 	usr, err := uc.usrRepository.GetByID(ctx, creatorID)
 	if err != nil {
 		return nil, err

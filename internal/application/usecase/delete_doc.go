@@ -9,7 +9,7 @@ import (
 )
 
 type DeleteDoceUseCase struct {
-	storage            storage.Storage
+	storage            storage.StorageManager
 	docRepository      domain.DocRepository
 	nodeRepository     domain.NodeRepository
 	usrRepository      domain.UsrRepository
@@ -47,7 +47,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 
 	}
 
-	if err := uc.storage.Remove(ctx, doc.ID); err != nil {
+	if err := uc.storage.Delete(ctx, doc.ID.String()); err != nil {
 		return nil, err
 	}
 
@@ -59,7 +59,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 }
 
 func NewDeleteDocUseCase(
-	s storage.Storage,
+	s storage.StorageManager,
 	dr domain.DocRepository,
 	nr domain.NodeRepository,
 	ur domain.UsrRepository,

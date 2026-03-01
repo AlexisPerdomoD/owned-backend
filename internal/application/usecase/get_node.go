@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"ownned/internal/application/model"
+	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 )
@@ -60,7 +60,7 @@ func (uc *GetNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeI
 			return nil, apperror.ErrNotFound(map[string]string{"error": "doc entity was not found"})
 		}
 
-		return &model.FileNodeDTO{Node: *node, Doc: *doc}, nil
+		return &dto.FileNodeDTO{Node: *node, Doc: *doc}, nil
 	}
 
 	children, err := nodeRepository.GetChildren(ctx, node.Path)
@@ -68,7 +68,7 @@ func (uc *GetNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeI
 		return nil, err
 	}
 
-	return &model.FolderNodeDTO{Node: *node, Children: children}, nil
+	return &dto.FolderNodeDTO{Node: *node, Children: children}, nil
 }
 
 func NewGetNodeByIDUseCase(

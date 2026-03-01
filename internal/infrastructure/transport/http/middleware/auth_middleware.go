@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	appauth "ownned/internal/application/auth"
 	"ownned/internal/infrastructure/auth"
 	"ownned/internal/infrastructure/transport/http/response"
 	"ownned/pkg/apperror"
@@ -11,7 +12,7 @@ import (
 )
 
 type AuthMiddleware struct {
-	jwtValidator auth.JWTValidator
+	jwtValidator appauth.JWTManager
 }
 
 func (m *AuthMiddleware) IsAuthenticated(next http.HandlerFunc) http.HandlerFunc {
@@ -35,7 +36,7 @@ func (m *AuthMiddleware) IsAuthenticated(next http.HandlerFunc) http.HandlerFunc
 
 		token = strings.TrimPrefix(token, "Bearer ")
 
-		session, err := m.jwtValidator.Validate(token)
+		session, err := m.jwtValidator.ValidateAccessToken(token)
 		if err != nil {
 			_ = response.WriteJSONError(w, err)
 			return
@@ -47,7 +48,7 @@ func (m *AuthMiddleware) IsAuthenticated(next http.HandlerFunc) http.HandlerFunc
 	})
 }
 
-func NewAuthMiddleware(jwtValidator auth.JWTValidator) *AuthMiddleware {
+func NewAuthMiddleware(jwtValidator appauth.JWTManager) *AuthMiddleware {
 	helper.NotNilOrPanic(jwtValidator, "jwtValidator")
 	return &AuthMiddleware{jwtValidator}
 }

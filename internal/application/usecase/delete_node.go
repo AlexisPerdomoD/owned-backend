@@ -17,7 +17,7 @@ type DeleteNodeUseCase struct {
 	nodeRepository     domain.NodeRepository
 	docRepository      domain.DocRepository
 	groupUsrRepository domain.GroupUsrRepository
-	storage            storage.Storage
+	storage            storage.StorageManager
 	logger             *slog.Logger
 }
 
@@ -91,7 +91,7 @@ func (uc *DeleteNodeUseCase) deleteDocsAsync(docs []domain.Doc) {
 
 	deletions := concurrent.MapConcurrent(
 		docs,
-		func(doc domain.Doc) (*domain.Doc, error) { return &doc, storage.Remove(ctx, doc.ID) },
+		func(doc domain.Doc) (*domain.Doc, error) { return &doc, storage.Delete(ctx, doc.ID.String()) },
 		20,
 	)
 
@@ -114,7 +114,7 @@ func NewDeleteNodeUseCase(
 	nr domain.NodeRepository,
 	dr domain.DocRepository,
 	gur domain.GroupUsrRepository,
-	storage storage.Storage,
+	storage storage.StorageManager,
 	mainLogger *slog.Logger,
 ) *DeleteNodeUseCase {
 	if ur == nil || nr == nil || dr == nil || gur == nil || storage == nil || mainLogger == nil {

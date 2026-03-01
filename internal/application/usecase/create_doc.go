@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"ownned/internal/application/model"
+	"ownned/internal/application/dto"
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
@@ -23,11 +23,11 @@ type CreateDocUseCase struct {
 	nodeRepository     domain.NodeRepository
 	groupUsrRepository domain.GroupUsrRepository
 	unitOfWorkFactory  domain.UnitOfWorkFactory
-	storage            storage.Storage
+	storage            storage.StorageManager
 	logger             *slog.Logger
 }
 
-func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID, arg *model.CreateDocInputDTO) (*CreateDocUseCaseResponse, error) {
+func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID, arg *dto.CreateDocInputDTO) (*CreateDocUseCaseResponse, error) {
 	usr, err := uc.usrRepository.GetByID(ctx, creatorID)
 	if err != nil {
 		return nil, err
@@ -69,8 +69,13 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, err
 	}
 
-	uploadArgs := arg.GetUploadArgs()
-	if err = uc.storage.Upload(ctx, docID, uploadArgs); err != nil {
+	uploadCommand := storage.StorageUploadCommand{
+		Key:          docID.String(),
+		MaxSizeBytes: arg.ExpectedSize,
+		File:         arg.File,
+	}
+	size, err := uc.storage.Put(ctx, uploadCommand)
+	if err != nil {
 		return nil, err
 	}
 
@@ -85,11 +90,11 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		Doc: &domain.Doc{
 			ID:          docID,
 			NodeID:      nodeID,
-			MimeType:    uploadArgs.Mimetype,
+			MimeType:    arg.Mimetype,
 			Title:       arg.Title,
 			Description: arg.Description,
 			UsrID:       usr.ID,
-			SizeInBytes: uint64(uploadArgs.Size),
+			SizeInBytes: size,
 		},
 	}
 
@@ -100,7 +105,8 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 }
 
 func (uc *CreateDocUseCase) saveDoc(ctx context.Context, response *CreateDocUseCaseResponse) error {
-	err := uc.unitOfWorkFactory.Do(ctx, func(txCtx context.Context, tx domain.UnitOfWork) error {
+	err := uc.unitOfWorkFactory.Do(ctx, func(tx domain.UnitOfWork) error {
+		txCtx := tx.Ctx()
 		if err := tx.NodeRepository().Create(txCtx, response.Node); err != nil {
 			return err
 		}
@@ -112,7 +118,7 @@ func (uc *CreateDocUseCase) saveDoc(ctx context.Context, response *CreateDocUseC
 		return nil
 	})
 	if err != nil {
-		deleteErr := uc.storage.Remove(ctx, response.Doc.ID)
+		deleteErr := uc.storage.Delete(ctx, response.Doc.ID.String())
 		if deleteErr != nil {
 			uc.logger.Warn("error deleting file after document creation err",
 				"err",
@@ -130,7 +136,7 @@ func NewCreateDocUseCase(
 	nr domain.NodeRepository,
 	gur domain.GroupUsrRepository,
 	uowf domain.UnitOfWorkFactory,
-	storage storage.Storage,
+	storage storage.StorageManager,
 	mainLogger *slog.Logger,
 ) *CreateDocUseCase {
 	if ur == nil || dr == nil || nr == nil || uowf == nil || storage == nil {
