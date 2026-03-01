@@ -94,7 +94,7 @@ func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(tx domain.UnitOfWork
 
 	tx, err := f.db.BeginTxx(txCtx, nil)
 	if err != nil {
-		f.log.WarnContext(ctx, "BeginTxx failed", slog.String("err", err.Error()))
+		f.log.WarnContext(txCtx, "BeginTxx failed", slog.String("err", err.Error()))
 		return err
 	}
 	defer func() {
@@ -102,13 +102,11 @@ func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(tx domain.UnitOfWork
 			return
 		}
 
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			f.log.WarnContext(ctx, "Rollback failed", slog.String("err", rollbackErr.Error()))
+		if rbErr := tx.Rollback(); rbErr != nil {
+			f.log.WarnContext(ctx, "Rollback failed", slog.String("err", rbErr.Error()))
 		}
 	}()
-	uow := &UnitOfWork{tx: tx, ctx: txCtx}
-	err = op(uow)
-	if err != nil {
+	if err = op(&UnitOfWork{tx: tx, ctx: txCtx}); err != nil {
 		f.log.DebugContext(txCtx, "error happened while executing unit of work", "err", err)
 		return err
 	}

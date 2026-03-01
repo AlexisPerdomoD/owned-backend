@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"ownned/internal/application/model"
+	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 )
@@ -14,7 +14,7 @@ type GetGroupUseCase struct {
 	nodeRepository  domain.NodeRepository
 }
 
-func (uc *GetGroupUseCase) Execute(ctx context.Context, id domain.GroupID) (*model.PopulateGroup, error) {
+func (uc *GetGroupUseCase) Execute(ctx context.Context, id domain.GroupID) (*dto.PopulateGroup, error) {
 	group, err := uc.groupRepository.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (uc *GetGroupUseCase) Execute(ctx context.Context, id domain.GroupID) (*mod
 		return nil, err
 	}
 
-	resp := &model.PopulateGroup{
+	resp := &dto.PopulateGroup{
 		Group: *group,
 		Usrs:  usrs,
 		Nodes: nodes,

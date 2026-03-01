@@ -25,7 +25,7 @@ type CreateUsrUseCase struct {
 func (uc *CreateUsrUseCase) Execute(
 	ctx context.Context,
 	creatorID domain.UsrID,
-	args dto.CreateUsrInputDTO,
+	args dto.CreateUsrDTO,
 ) (*domain.Usr, error) {
 	creator, err := uc.ur.GetByID(ctx, creatorID)
 	if err != nil {

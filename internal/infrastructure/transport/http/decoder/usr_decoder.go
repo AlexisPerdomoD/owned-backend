@@ -8,8 +8,8 @@ import (
 	"ownned/internal/application/dto"
 )
 
-func CreateUsrDTOFromJSON(r io.Reader) (*dto.CreateUsrInputDTO, error) {
-	var dto dto.CreateUsrInputDTO
+func CreateUsrDTOFromJSON(r io.Reader) (*dto.CreateUsrDTO, error) {
+	var dto dto.CreateUsrDTO
 	decoder := json.NewDecoder(r)
 	decoder.DisallowUnknownFields()
 
