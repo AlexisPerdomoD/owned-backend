@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"ownned/internal/application/auth"
 	"ownned/internal/application/usecase"
 	"ownned/internal/domain"
-	"ownned/internal/infrastructure/auth"
+	"ownned/internal/infrastructure/config"
 	"ownned/internal/infrastructure/db/pg"
 	"ownned/internal/infrastructure/transport/http/handler"
 	"ownned/internal/infrastructure/transport/http/middleware"
@@ -20,22 +21,19 @@ import (
 
 // start point baby
 func main() {
+	cfg := config.LoadEnvConfig()
 	// services
 	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	sessionSecret, exists := os.LookupEnv("SESSION_SECRET")
-	if !exists {
-		panic("SESSION_SECRET not set")
-	}
 
-	jwtService := auth.NewJWTService(sessionSecret)
+	var jwtService auth.JWTManager
 	// DB
 	db, err := pg.NewDB(
-		os.Getenv("PG_DB"),
-		os.Getenv("PG_HOST"),
-		os.Getenv("PG_PORT"),
-		os.Getenv("PG_USER"),
-		os.Getenv("PG_PASSWORD"),
-		os.Getenv("PG_SSL"),
+		cfg.PgDB,
+		cfg.PgHost,
+		cfg.PgPort,
+		cfg.PgUser,
+		cfg.PgPassword,
+		cfg.PgSsl,
 	)
 	if err != nil {
 		panic(err)
@@ -75,14 +73,9 @@ func main() {
 	r.Mount("/api/v1/usr", usrR)
 	logRoutes(r, l)
 
-	PORT, exists := os.LookupEnv("PORT")
-	if !exists {
-		PORT = "3000"
-	}
+	l.Info("server starting at:", "port", cfg.Port)
 
-	l.Info("server starting at:", "port", PORT)
-
-	_ = http.ListenAndServe(fmt.Sprintf(":%s", PORT), r)
+	_ = http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r)
 }
 
 func logRoutes(r chi.Router, l *slog.Logger) {
