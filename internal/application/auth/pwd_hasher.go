@@ -2,7 +2,18 @@ package auth
 
 import "errors"
 
-var ErrInvalidHash = errors.New("invalid hash")
+var (
+	// ErrInvalidPwd is the error that represnts valid validacion process happend but the password is invalid.
+	ErrInvalidPwd = errors.New("invalid password")
+	// ErrInvalidHash is the error that represnts hash format is invalid.
+	ErrInvalidHash = errors.New("invalid hash format")
+	// ErrExpiredHashVersion is the error that represnts hash version it is not what is currently supported.
+	// This means the hash is not supported anymore.
+	ErrExpiredHashVersion = errors.New("expired hash version")
+	// ErrDifferentConfig is the error that represnts the hash is valid but the config is different.
+	// This means the hash is not supported anymore.
+	ErrDifferentConfig = errors.New("conflicting config")
+)
 
 // PwdHasher is the interface for password hashing implementations of required algorithms.
 type PwdHasher interface {
