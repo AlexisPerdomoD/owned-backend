@@ -44,10 +44,15 @@ CREATE TABLE fs.usr_pwds (
     usr_id      UUID NOT NULL,
     pwd         BYTEA NOT NULL,
     created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
 
     CONSTRAINT usr_pwds_pk PRIMARY KEY (usr_id),
     CONSTRAINT usr_pwds_usr_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE
 );
+
+CREATE TRIGGER trg_usr_pwds_updated_at();
+BEFORE UPDATE ON fs.usr_pwds
+FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
 
 -- ============================
 -- Groups

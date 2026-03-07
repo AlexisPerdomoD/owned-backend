@@ -14,8 +14,8 @@ type UnitOfWork struct {
 	tx                  *sqlx.Tx
 	ctx                 context.Context
 	nodeRepository      *NodeRepository
-	usrRepository       *UsrRepository
-	usrPwdRepository    *UsrPwdRepository
+	usrRepository       domain.UsrRepository
+	usrPwdRepository    domain.UsrPwdRepository
 	docRepository       *DocRepository
 	groupRepository     *GroupRepository
 	groupUsrRepository  *GroupUsrRepository

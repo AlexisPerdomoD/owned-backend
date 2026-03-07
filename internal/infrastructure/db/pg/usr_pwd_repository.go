@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+	"database/sql"
 
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
@@ -9,18 +10,47 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type UsrPwdRepository struct {
+const upsertUsrPwdQuery string = `
+INSERT INTO fs.usr_pwds(
+	usr_id,
+	pwd
+) VALUES ($1, $2) 
+ON CONFLICT (usr_id) 
+DO UPDATE SET pwd = EXCLUDED.pwd`
+
+const getUsrPwdQuery string = `SELECT pwd from fs.usr_pwds where usr_id=$1`
+
+type usrPwdRepository struct {
 	db sqlx.ExtContext
 }
 
-func (r *UsrPwdRepository) SetPwd(ctx context.Context, id domain.UsrID, pwd []byte) error {
-	return apperror.ErrNotImplemented(nil)
+func (r *usrPwdRepository) SetPwd(ctx context.Context, id domain.UsrID, pwd []byte) error {
+	if pwd == nil {
+		return ErrInvalidArgument
+	}
+
+	_, err := r.db.ExecContext(ctx, upsertUsrPwdQuery, id, pwd)
+	if err != nil && err == sql.ErrNoRows {
+		return apperror.ErrNotFound(nil)
+	}
+
+	return err
 }
 
-func (r *UsrPwdRepository) GetPwd(ctx context.Context, id domain.UsrID) ([]byte, error) {
-	return nil, apperror.ErrNotImplemented(nil)
+func (r *usrPwdRepository) GetPwd(ctx context.Context, id domain.UsrID) ([]byte, error) {
+	var pwd []byte
+	err := r.db.QueryRowxContext(ctx, getUsrPwdQuery, id).Scan(&pwd)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, apperror.ErrNotFound(nil)
+		}
+
+		return nil, err
+	}
+
+	return pwd, nil
 }
 
-func NewUsrPwdRepository(db sqlx.ExtContext) *UsrPwdRepository {
-	return &UsrPwdRepository{db}
+func NewUsrPwdRepository(db sqlx.ExtContext) domain.UsrPwdRepository {
+	return &usrPwdRepository{db}
 }

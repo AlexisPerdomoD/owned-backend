@@ -3,6 +3,7 @@ package pg
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,11 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+)
+
+var (
+	ErrInvalidArgument = errors.New("invalid argument provided")
+	ErrUsrDoesNotExist = errors.New("usr was not found")
 )
 
 func NewDB(
