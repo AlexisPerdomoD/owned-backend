@@ -53,7 +53,7 @@ test-migrate-down: test-local-up-db
 test-local: test-migrate-up
 	@clear
 	@echo "running tests"
-	go test ./... -v | grep -v "^?"
+	@go test ./... -v | grep -v "^?"
 	$(DOCKER_COMPOSE) -f $(TEST_DB_COMPOSE_FILE) down
 
 ################################################################################

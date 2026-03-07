@@ -21,7 +21,7 @@ type parsedHash struct {
 	hash    []byte
 }
 
-// PwdHasherArgon2 implements the PwdHasher interface for Argon2.
+// pwdHasherArgon2 implements the PwdHasher interface for Argon2.
 //
 // - time is the number of passes over the memory. The recommended value is 3.
 //
@@ -32,7 +32,7 @@ type parsedHash struct {
 // - keyLen is the length of the resulting key in bytes. The recommended value is 32.
 //
 // - saltLen is the length of the salt in bytes. The recommended value is 16.
-type PwdHasherArgon2 struct {
+type pwdHasherArgon2 struct {
 	time    uint32
 	mem     uint32
 	threads uint8
@@ -40,7 +40,7 @@ type PwdHasherArgon2 struct {
 	saltLen uint32
 }
 
-func (h *PwdHasherArgon2) parseHash(hashedPassword []byte) (*parsedHash, error) {
+func (h *pwdHasherArgon2) parseHash(hashedPassword []byte) (*parsedHash, error) {
 	parts := bytes.Split(hashedPassword, []byte{'$'})
 	if len(parts) != 6 ||
 		!bytes.Equal(parts[1], []byte("argon2id")) {
@@ -83,7 +83,7 @@ func (h *PwdHasherArgon2) parseHash(hashedPassword []byte) (*parsedHash, error) 
 	}, nil
 }
 
-func (h *PwdHasherArgon2) Hash(password []byte) ([]byte, error) {
+func (h *pwdHasherArgon2) Hash(password []byte) ([]byte, error) {
 	salt := make([]byte, h.saltLen)
 	_, _ = rand.Read(salt) // crypto/rand.Read never fails
 
@@ -110,7 +110,7 @@ func (h *PwdHasherArgon2) Hash(password []byte) ([]byte, error) {
 	return result, nil
 }
 
-func (h *PwdHasherArgon2) Compare(hashedPassword, password []byte) error {
+func (h *pwdHasherArgon2) Compare(hashedPassword, password []byte) error {
 	parsed, err := h.parseHash(hashedPassword)
 	if err != nil {
 		return err
@@ -135,7 +135,7 @@ func (h *PwdHasherArgon2) Compare(hashedPassword, password []byte) error {
 	return nil
 }
 
-func (h *PwdHasherArgon2) RequiredReHash(hashedPassword []byte) bool {
+func (h *pwdHasherArgon2) RequiredReHash(hashedPassword []byte) bool {
 	parsed, err := h.parseHash(hashedPassword)
 	if err != nil {
 		return true
@@ -154,7 +154,7 @@ func NewPwdHasherArgon2(
 	threads uint8,
 	keyLen uint32,
 	saltLen uint32,
-) *PwdHasherArgon2 {
+) auth.PwdHasher {
 	if time < 1 {
 		panic("time must be greater than 0")
 	}
@@ -175,7 +175,7 @@ func NewPwdHasherArgon2(
 		panic("saltLen must be greater than 16")
 	}
 
-	return &PwdHasherArgon2{
+	return &pwdHasherArgon2{
 		time:    time,
 		mem:     memKiB,
 		threads: threads,

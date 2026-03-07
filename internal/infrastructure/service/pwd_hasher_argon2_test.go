@@ -10,14 +10,14 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-func newTestHasher() *PwdHasherArgon2 {
-	return NewPwdHasherArgon2(
-		1,
-		8*1024, // 8 MiB
-		1,
-		16,
-		16,
-	)
+func newTestHasher() *pwdHasherArgon2 {
+	return &pwdHasherArgon2{
+		time:    3,
+		mem:     64 * 1024,
+		threads: 4,
+		keyLen:  32,
+		saltLen: 16,
+	}
 }
 
 func TestPwdHasherArgon2_Hash(t *testing.T) {
@@ -274,7 +274,7 @@ func TestNewPwdHasherArgon2_Panics(t *testing.T) {
 }
 
 func TestPwdHasherArgon2_ImplementsInterface(t *testing.T) {
-	var _ auth.PwdHasher = (*PwdHasherArgon2)(nil)
+	var _ auth.PwdHasher = (*pwdHasherArgon2)(nil)
 }
 
 func TestPwdHasherArgon2_Integration(t *testing.T) {
