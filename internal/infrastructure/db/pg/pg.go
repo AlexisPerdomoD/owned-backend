@@ -2,9 +2,11 @@
 package pg
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -20,6 +22,17 @@ var (
 	ErrInvalidArgument = errors.New("invalid argument provided")
 	ErrUsrDoesNotExist = errors.New("usr was not found")
 )
+
+type closer interface {
+	Close() error
+}
+
+func safeClose(ctx context.Context, c closer) {
+	err := c.Close()
+	if err != nil {
+		slog.WarnContext(ctx, "failed to close resource", "err", err)
+	}
+}
 
 func NewDB(
 	dbName string,

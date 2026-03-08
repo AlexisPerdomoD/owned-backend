@@ -17,9 +17,9 @@ type UnitOfWork struct {
 	usrRepository       domain.UsrRepository
 	usrPwdRepository    domain.UsrPwdRepository
 	docRepository       *DocRepository
-	groupRepository     *GroupRepository
-	groupUsrRepository  *GroupUsrRepository
-	groupNodeRepository *GroupNodeRepository
+	groupRepository     domain.GroupRepository
+	groupUsrRepository  domain.GroupUsrRepository
+	groupNodeRepository domain.GroupNodeRepository
 }
 
 func (u *UnitOfWork) Ctx() context.Context {

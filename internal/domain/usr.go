@@ -38,7 +38,7 @@ type Usr struct {
 
 type UsrGroupAccess struct {
 	Usr
-	Access     GroupAccess
+	Access     GroupUsrAccess
 	AssignDate time.Time
 }
 

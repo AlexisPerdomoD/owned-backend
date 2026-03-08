@@ -34,6 +34,10 @@ func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) 
 			return nil, err
 		}
 
+		if len(groups) == 0 {
+			return nil, apperror.ErrForbidden(nil)
+		}
+
 		groupIDs := make([]domain.GroupID, len(groups))
 		for i, g := range groups {
 			groupIDs[i] = g.ID

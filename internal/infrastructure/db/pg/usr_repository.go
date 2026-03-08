@@ -22,8 +22,8 @@ type usrRow struct {
 	updatedAt time.Time      `db:"updated_at"`
 }
 
-func (r *usrRow) ToDomain() *domain.Usr {
-	return &domain.Usr{
+func (r *usrRow) ToDomain() domain.Usr {
+	return domain.Usr{
 		ID:        r.id,
 		Role:      r.role,
 		Firstname: r.firstname,
@@ -36,12 +36,12 @@ func (r *usrRow) ToDomain() *domain.Usr {
 
 type usrGroupAccessRow struct {
 	usrRow
-	access     domain.GroupAccess `db:"access"`
+	access     domain.GroupUsrAccess `db:"access"`
 	assignedAt time.Time          `db:"assigned_at"`
 }
 
-func (r *usrGroupAccessRow) ToDomain() *domain.UsrGroupAccess {
-	return &domain.UsrGroupAccess{
+func (r *usrGroupAccessRow) ToDomain() domain.UsrGroupAccess {
+	return domain.UsrGroupAccess{
 		Usr: domain.Usr{
 			ID:        r.id,
 			Role:      r.role,
@@ -111,13 +111,14 @@ func (r *usrRepository) GetByID(ctx context.Context, id domain.UsrID) (*domain.U
 	error := sqlx.GetContext(ctx, r.db, row, q, id)
 	if error != nil {
 		if error == sql.ErrNoRows {
-			return nil, apperror.ErrNotFound(nil)
+			return nil, nil
 		}
 
 		return nil, error
 	}
 
-	return row.ToDomain(), nil
+	res := row.ToDomain()
+	return &res, nil
 }
 
 func (r *usrRepository) GetByUsername(ctx context.Context, username string) (*domain.Usr, error) {
@@ -126,13 +127,12 @@ func (r *usrRepository) GetByUsername(ctx context.Context, username string) (*do
 	error := sqlx.GetContext(ctx, r.db, row, q, username)
 	if error != nil {
 		if error == sql.ErrNoRows {
-			return nil, apperror.ErrNotFound(nil)
+			return nil, nil
 		}
-
 		return nil, error
 	}
-
-	return row.ToDomain(), nil
+	res := row.ToDomain()
+	return &res, nil
 }
 
 func (r *usrRepository) GetByGroup(ctx context.Context, groupID domain.GroupID) ([]domain.UsrGroupAccess, error) {
@@ -149,7 +149,7 @@ func (r *usrRepository) GetByGroup(ctx context.Context, groupID domain.GroupID) 
 		if err := rows.StructScan(row); err != nil {
 			return nil, err
 		}
-		result = append(result, *row.ToDomain())
+		result = append(result, row.ToDomain())
 	}
 
 	err = rows.Err()

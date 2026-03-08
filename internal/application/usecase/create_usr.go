@@ -76,20 +76,20 @@ func (uc *CreateUsrUseCase) Execute(
 		Path:        domain.NodePathUsrRoot.NewChildPath(usr.ID),
 	}
 
-	group := &domain.Group{
+	usrRootGroup := &domain.Group{
 		ID:          usrGroupID,
 		Name:        fmt.Sprintf("group_%s", args.Username),
 		Description: "Group for user " + args.Username,
 	}
 
 	nodeRootGroup := &domain.UpsertGroupNode{
-		GroupID: group.ID,
+		GroupID: usrRootGroup.ID,
 		NodeID:  usrNodeRoot.ID,
 	}
 
 	usrGroups := col.Set[domain.UpsertGroupUsr]{}
 	usrGroups.Add(domain.UpsertGroupUsr{
-		GroupID: group.ID,
+		GroupID: usrRootGroup.ID,
 		UsrID:   usr.ID,
 		Access:  domain.GroupWriteAccess,
 	})
@@ -114,7 +114,7 @@ func (uc *CreateUsrUseCase) Execute(
 			return err
 		}
 
-		if err := tx.GroupRepository().Create(txCtx, group); err != nil {
+		if err := tx.GroupRepository().Create(txCtx, usrRootGroup); err != nil {
 			return err
 		}
 
