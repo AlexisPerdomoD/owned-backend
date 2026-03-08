@@ -148,7 +148,7 @@ func (h *pwdHasherArgon2) RequiredReHash(hashedPassword []byte) bool {
 	return parsed.mem != h.mem || parsed.time != h.time || parsed.threads != h.threads
 }
 
-func NewPwdHasherArgon2(
+func NewPwdHasher(
 	time uint32,
 	memKiB uint32,
 	threads uint8,

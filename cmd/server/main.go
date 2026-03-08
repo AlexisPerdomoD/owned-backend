@@ -43,11 +43,11 @@ func main() {
 		panic(err)
 	}
 
-	var usrRepository domain.UsrRepository = pg.NewUsrRepository(db)
+	usrRepository := pg.NewUsrRepository(db)
 	var nodeRepository domain.NodeRepository = pg.NewNodeRepository(db)
-	var groupUsrRepository domain.GroupUsrRepository = pg.NewGroupUsrRepository(db)
+	groupUsrRepository := pg.NewGroupUsrRepository(db)
 	// var docRepository domain.DocRepository = repo.NewDocRepository()
-	var unitOfWorkFactory domain.UnitOfWorkFactory = pg.NewUnitOfWorkFactory(db, l, time.Second*30)
+	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
 	createUsr := usecase.NewCreateUsrUseCase(usrRepository, nodeRepository, groupUsrRepository, unitOfWorkFactory, l)
 	getUsr := usecase.NewGetUsrUseCase(usrRepository)

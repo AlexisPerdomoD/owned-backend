@@ -268,7 +268,7 @@ func TestNewPwdHasherArgon2_Panics(t *testing.T) {
 				}
 			}()
 
-			NewPwdHasherArgon2(tt.time, tt.mem, tt.threads, tt.keyLen, tt.saltLen)
+			NewPwdHasher(tt.time, tt.mem, tt.threads, tt.keyLen, tt.saltLen)
 		})
 	}
 }

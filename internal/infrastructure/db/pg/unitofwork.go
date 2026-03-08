@@ -10,7 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type UnitOfWork struct {
+type unitOfWork struct {
 	tx                  *sqlx.Tx
 	ctx                 context.Context
 	nodeRepository      *NodeRepository
@@ -22,11 +22,11 @@ type UnitOfWork struct {
 	groupNodeRepository domain.GroupNodeRepository
 }
 
-func (u *UnitOfWork) Ctx() context.Context {
+func (u *unitOfWork) Ctx() context.Context {
 	return u.ctx
 }
 
-func (u *UnitOfWork) NodeRepository() domain.NodeRepository {
+func (u *unitOfWork) NodeRepository() domain.NodeRepository {
 	if u.nodeRepository == nil {
 		u.nodeRepository = NewNodeRepository(u.tx)
 	}
@@ -34,7 +34,7 @@ func (u *UnitOfWork) NodeRepository() domain.NodeRepository {
 	return u.nodeRepository
 }
 
-func (u *UnitOfWork) DocRepository() domain.DocRepository {
+func (u *unitOfWork) DocRepository() domain.DocRepository {
 	if u.docRepository == nil {
 		u.docRepository = NewDocRepository(u.tx)
 	}
@@ -42,7 +42,7 @@ func (u *UnitOfWork) DocRepository() domain.DocRepository {
 	return u.docRepository
 }
 
-func (u *UnitOfWork) UsrRepository() domain.UsrRepository {
+func (u *unitOfWork) UsrRepository() domain.UsrRepository {
 	if u.usrRepository == nil {
 		u.usrRepository = NewUsrRepository(u.tx)
 	}
@@ -50,7 +50,7 @@ func (u *UnitOfWork) UsrRepository() domain.UsrRepository {
 	return u.usrRepository
 }
 
-func (u *UnitOfWork) UsrPwdRepository() domain.UsrPwdRepository {
+func (u *unitOfWork) UsrPwdRepository() domain.UsrPwdRepository {
 	if u.usrPwdRepository == nil {
 		u.usrPwdRepository = NewUsrPwdRepository(u.tx)
 	}
@@ -58,7 +58,7 @@ func (u *UnitOfWork) UsrPwdRepository() domain.UsrPwdRepository {
 	return u.usrPwdRepository
 }
 
-func (u *UnitOfWork) GroupRepository() domain.GroupRepository {
+func (u *unitOfWork) GroupRepository() domain.GroupRepository {
 	if u.groupRepository == nil {
 		u.groupRepository = NewGroupRepository(u.tx)
 	}
@@ -66,7 +66,7 @@ func (u *UnitOfWork) GroupRepository() domain.GroupRepository {
 	return u.groupRepository
 }
 
-func (u *UnitOfWork) GroupUsrRepository() domain.GroupUsrRepository {
+func (u *unitOfWork) GroupUsrRepository() domain.GroupUsrRepository {
 	if u.groupUsrRepository == nil {
 		u.groupUsrRepository = NewGroupUsrRepository(u.tx)
 	}
@@ -74,7 +74,7 @@ func (u *UnitOfWork) GroupUsrRepository() domain.GroupUsrRepository {
 	return u.groupUsrRepository
 }
 
-func (u *UnitOfWork) GroupNodeRepository() domain.GroupNodeRepository {
+func (u *unitOfWork) GroupNodeRepository() domain.GroupNodeRepository {
 	if u.groupNodeRepository == nil {
 		u.groupNodeRepository = NewGroupNodeRepository(u.tx)
 	}
@@ -82,13 +82,13 @@ func (u *UnitOfWork) GroupNodeRepository() domain.GroupNodeRepository {
 	return u.groupNodeRepository
 }
 
-type UnitOfWorkFactory struct {
+type unitOfWorkFactory struct {
 	db      *sqlx.DB
 	log     *slog.Logger
 	timeout time.Duration
 }
 
-func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(tx domain.UnitOfWork) error) error {
+func (f *unitOfWorkFactory) Do(ctx context.Context, op func(tx domain.UnitOfWork) error) error {
 	txCtx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()
 
@@ -106,7 +106,7 @@ func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(tx domain.UnitOfWork
 			f.log.WarnContext(ctx, "Rollback failed", slog.String("err", rbErr.Error()))
 		}
 	}()
-	if err = op(&UnitOfWork{tx: tx, ctx: txCtx}); err != nil {
+	if err = op(&unitOfWork{tx: tx, ctx: txCtx}); err != nil {
 		f.log.DebugContext(txCtx, "error happened while executing unit of work", "err", err)
 		return err
 	}
@@ -115,6 +115,6 @@ func (f *UnitOfWorkFactory) Do(ctx context.Context, op func(tx domain.UnitOfWork
 	return err
 }
 
-func NewUnitOfWorkFactory(db *sqlx.DB, log *slog.Logger, timeout time.Duration) *UnitOfWorkFactory {
-	return &UnitOfWorkFactory{db, log, timeout}
+func NewUnitOfWorkFactory(db *sqlx.DB, log *slog.Logger, timeout time.Duration) domain.UnitOfWorkFactory {
+	return &unitOfWorkFactory{db, log, timeout}
 }
