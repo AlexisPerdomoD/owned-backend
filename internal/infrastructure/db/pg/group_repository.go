@@ -13,24 +13,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type groupRow struct {
-	ID          uuid.UUID `db:"id"`
-	Name        string    `db:"name"`
-	Description string    `db:"description"`
-	CreatedAt   time.Time `db:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
-}
-
-func (r *groupRow) ToDomain() domain.Group {
-	return domain.Group{
-		ID:          r.ID,
-		Name:        r.Name,
-		Description: r.Description,
-		CreatedAt:   r.CreatedAt,
-		UpdatedAt:   r.UpdatedAt,
-	}
-}
-
 const getGroupQuery string = `
 SELECT 
 	g.id,
@@ -55,34 +37,26 @@ UPDATE fs.groups SET
 	description = $2
 WHERE id=$3`
 
+type groupRow struct {
+	ID          uuid.UUID `db:"id"`
+	Name        string    `db:"name"`
+	Description string    `db:"description"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
+}
+
+func (r *groupRow) ToDomain() domain.Group {
+	return domain.Group{
+		ID:          r.ID,
+		Name:        r.Name,
+		Description: r.Description,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
+	}
+}
+
 type groupRepository struct {
 	db sqlx.ExtContext
-}
-
-func (r *groupRepository) sliceGroup(rows *sqlx.Rows, res *[]domain.Group) error {
-	for rows.Next() {
-		row := &groupRow{}
-		if err := rows.StructScan(row); err != nil {
-			return err
-		}
-
-		*res = append(*res, row.ToDomain())
-	}
-
-	return rows.Err()
-}
-
-func (r *groupRepository) mapGroup(rows *sqlx.Rows, res map[domain.GroupID]*domain.Group) error {
-	for rows.Next() {
-		row := &groupRow{}
-		if err := rows.StructScan(row); err != nil {
-			return err
-		}
-		d := row.ToDomain()
-		res[row.ID] = &d
-	}
-
-	return rows.Err()
 }
 
 func (r *groupRepository) GetByID(ctx context.Context, id domain.GroupID) (*domain.Group, error) {
@@ -117,7 +91,17 @@ func (r *groupRepository) GetByIDs(ctx context.Context, ids []domain.GroupID) (m
 		return nil, err
 	}
 	defer safeClose(ctx, rows)
-	if err := r.mapGroup(rows, res); err != nil {
+
+	for rows.Next() {
+		row := &groupRow{}
+		if err := rows.StructScan(row); err != nil {
+			return nil, err
+		}
+		d := row.ToDomain()
+		res[row.ID] = &d
+	}
+
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
@@ -132,10 +116,11 @@ func (r *groupRepository) GetByUsr(ctx context.Context, usrID domain.UsrID) ([]d
 	}
 
 	defer safeClose(ctx, rows)
-	res := make([]domain.Group, 0)
-	if err := r.sliceGroup(rows, &res); err != nil {
+	res, err := readSlice[domain.Group, groupRow](rows)
+	if err != nil {
 		return nil, err
 	}
+
 	return res, nil
 }
 

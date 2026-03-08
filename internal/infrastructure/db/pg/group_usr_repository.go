@@ -74,19 +74,6 @@ type groupUsrRepository struct {
 	db sqlx.ExtContext
 }
 
-func (r *groupUsrRepository) groupUsrSlice(rows *sqlx.Rows, res *[]domain.GroupUsr) error {
-	for rows.Next() {
-		row := &groupUsrRow{}
-		if err := rows.StructScan(row); err != nil {
-			return err
-		}
-
-		*res = append(*res, row.ToDomain())
-	}
-
-	return rows.Err()
-}
-
 func (r *groupUsrRepository) GetGroupAccess(
 	ctx context.Context,
 	usrID domain.UsrID,
@@ -128,8 +115,9 @@ func (r *groupUsrRepository) GetByUsr(ctx context.Context, usrID domain.UsrID) (
 	}
 
 	defer safeClose(ctx, rows)
-	res := make([]domain.GroupUsr, 0)
-	if err := r.groupUsrSlice(rows, &res); err != nil {
+	// por revisar bb si funciona soy dios
+	res, err := readSlice[domain.GroupUsr, groupUsrRow](rows)
+	if err != nil {
 		return nil, err
 	}
 
