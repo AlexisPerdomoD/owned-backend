@@ -43,5 +43,10 @@ func readSlice[R any, T any, PT interface {
 		res = append(res, ptr.ToDomain())
 	}
 
-	return res, rows.Err()
+	err := rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }

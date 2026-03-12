@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,11 +11,12 @@ import (
 type NodePath string
 
 const (
-	NodePathUsrRoot NodePath = "usrs"
+	NodePathUsrRoot    NodePath = "usrs"
+	NodePathSharedRoot NodePath = "shared"
 )
 
 func (p NodePath) NewChildPath(nodeID uuid.UUID) NodePath {
-	return NodePath(string(p) + "." + nodeID.String())
+	return NodePath(string(p) + "." + strings.ReplaceAll(nodeID.String(), "-", "_"))
 }
 
 type NodeType string
@@ -63,8 +65,6 @@ type NodeGroupAttach struct {
 
 type NodeRepository interface {
 	GetByID(ctx context.Context, id NodeID) (*Node, error)
-
-	GetByIDs(ctx context.Context, ids []NodeID) ([]Node, error)
 
 	GetChildren(ctx context.Context, path NodePath) ([]Node, error)
 
