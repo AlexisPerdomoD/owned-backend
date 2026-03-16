@@ -12,50 +12,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type usrRow struct {
-	id        domain.UsrID   `db:"id"`
-	role      domain.UsrRole `db:"role"`
-	firstname string         `db:"firstname"`
-	lastname  string         `db:"lastname"`
-	username  string         `db:"username"`
-	createdAt time.Time      `db:"created_at"`
-	updatedAt time.Time      `db:"updated_at"`
-}
-
-func (r *usrRow) ToDomain() domain.Usr {
-	return domain.Usr{
-		ID:        r.id,
-		Role:      r.role,
-		Firstname: r.firstname,
-		Lastname:  r.lastname,
-		Username:  r.username,
-		CreatedAt: r.createdAt,
-		UpdatedAt: r.updatedAt,
-	}
-}
-
-type usrGroupAccessRow struct {
-	usrRow
-	access     domain.GroupUsrAccess `db:"access"`
-	assignedAt time.Time          `db:"assigned_at"`
-}
-
-func (r *usrGroupAccessRow) ToDomain() domain.UsrGroupAccess {
-	return domain.UsrGroupAccess{
-		Usr: domain.Usr{
-			ID:        r.id,
-			Role:      r.role,
-			Firstname: r.firstname,
-			Lastname:  r.lastname,
-			Username:  r.username,
-			CreatedAt: r.createdAt,
-			UpdatedAt: r.updatedAt,
-		},
-		Access:     r.access,
-		AssignDate: r.assignedAt,
-	}
-}
-
 const getUsrQuery string = `
 SELECT
 	u.id,
@@ -100,6 +56,50 @@ UPDATE fs.usrs SET
 	lastname	= $3,
 	username	= $4
 WHERE id=5`
+
+type usrRow struct {
+	id        domain.UsrID   `db:"id"`
+	role      domain.UsrRole `db:"role"`
+	firstname string         `db:"firstname"`
+	lastname  string         `db:"lastname"`
+	username  string         `db:"username"`
+	createdAt time.Time      `db:"created_at"`
+	updatedAt time.Time      `db:"updated_at"`
+}
+
+func (r *usrRow) ToDomain() domain.Usr {
+	return domain.Usr{
+		ID:        r.id,
+		Role:      r.role,
+		Firstname: r.firstname,
+		Lastname:  r.lastname,
+		Username:  r.username,
+		CreatedAt: r.createdAt,
+		UpdatedAt: r.updatedAt,
+	}
+}
+
+type usrGroupAccessRow struct {
+	usrRow
+	access     domain.GroupUsrAccess `db:"access"`
+	assignedAt time.Time             `db:"assigned_at"`
+}
+
+func (r *usrGroupAccessRow) ToDomain() domain.UsrGroupAccess {
+	return domain.UsrGroupAccess{
+		Usr: domain.Usr{
+			ID:        r.id,
+			Role:      r.role,
+			Firstname: r.firstname,
+			Lastname:  r.lastname,
+			Username:  r.username,
+			CreatedAt: r.createdAt,
+			UpdatedAt: r.updatedAt,
+		},
+		Access:     r.access,
+		AssignDate: r.assignedAt,
+	}
+}
 
 type usrRepository struct {
 	db sqlx.ExtContext

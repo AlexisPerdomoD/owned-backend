@@ -50,7 +50,7 @@ CREATE TABLE fs.usr_pwds (
     CONSTRAINT usr_pwds_usr_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE
 );
 
-CREATE TRIGGER trg_usr_pwds_updated_at();
+CREATE TRIGGER trg_usr_pwds_updated_at
 BEFORE UPDATE ON fs.usr_pwds
 FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
 
@@ -77,7 +77,7 @@ FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
 -- ============================
 CREATE TABLE fs.group_usrs (
     group_id     UUID NOT NULL,
-    usr_id      UUID NOT NULL,
+    usr_id       UUID NOT NULL,
     access       VARCHAR(20) NOT NULL,
     assigned_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
 
@@ -143,7 +143,7 @@ CREATE INDEX idx_group_nodes_node
 CREATE TABLE fs.docs (
     id             UUID,
     node_id        UUID NOT NULL,
-    user_id        UUID NOT NULL,
+    usr_id         UUID NOT NULL,
     title          text NOT NULL,
     description    text,
     mime_type      text NOT NULL,
@@ -155,8 +155,7 @@ CREATE TABLE fs.docs (
     CONSTRAINT docs_node_id_ux UNIQUE (node_id),
     CONSTRAINT docs_size_in_bytes_check CHECK (size_in_bytes >= 0),
     CONSTRAINT docs_node_fk FOREIGN KEY (node_id) REFERENCES fs.nodes(id) ON DELETE CASCADE,
-    CONSTRAINT docs_user_fk FOREIGN KEY (user_id) REFERENCES fs.usrs(id)
-
+    CONSTRAINT docs_usr_fk  FOREIGN KEY (usr_id) REFERENCES fs.usrs(id)
 );
 
 CREATE TRIGGER trg_docs_updated_at

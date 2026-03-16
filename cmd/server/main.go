@@ -8,11 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"ownned/internal/application/auth"
 	"ownned/internal/application/usecase"
-	"ownned/internal/domain"
 	"ownned/internal/infrastructure/config"
 	"ownned/internal/infrastructure/db/pg"
+	"ownned/internal/infrastructure/service"
 	"ownned/internal/infrastructure/transport/http/handler"
 	"ownned/internal/infrastructure/transport/http/middleware"
 
@@ -25,7 +24,12 @@ func main() {
 	// services
 	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	var jwtService auth.JWTManager
+	jwtService := service.NewJWTManagerST(
+		[]byte(cfg.SessionSecret),
+		time.Hour,
+		"ownned",
+	)
+
 	// DB
 	db, err := pg.NewDB(
 		cfg.PgDB,
@@ -44,7 +48,7 @@ func main() {
 	}
 
 	usrRepository := pg.NewUsrRepository(db)
-	var nodeRepository domain.NodeRepository = pg.NewNodeRepository(db)
+	nodeRepository := pg.NewNodeRepository(db)
 	groupUsrRepository := pg.NewGroupUsrRepository(db)
 	// var docRepository domain.DocRepository = repo.NewDocRepository()
 	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)

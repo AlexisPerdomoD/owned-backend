@@ -29,11 +29,9 @@ type DocRepository interface {
 
 	GetByNodeID(ctx context.Context, id NodeID) (*Doc, error)
 
-	GetAllFromNodeID(ctx context.Context, id NodeID) ([]Doc, error)
+	GetAllFromPath(ctx context.Context, path NodePath) ([]Doc, error)
 
 	Create(ctx context.Context, d *Doc) error
 
 	Update(ctx context.Context, d *Doc) error
-
-	Delete(ctx context.Context, id DocID) error
 }

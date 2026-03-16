@@ -16,7 +16,7 @@ type unitOfWork struct {
 	nodeRepository      domain.NodeRepository
 	usrRepository       domain.UsrRepository
 	usrPwdRepository    domain.UsrPwdRepository
-	docRepository       *DocRepository
+	docRepository       domain.DocRepository
 	groupRepository     domain.GroupRepository
 	groupUsrRepository  domain.GroupUsrRepository
 	groupNodeRepository domain.GroupNodeRepository

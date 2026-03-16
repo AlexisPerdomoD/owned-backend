@@ -60,7 +60,7 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 		}
 	}
 
-	docs, err := uc.docRepository.GetAllFromNodeID(ctx, node.ID)
+	docs, err := uc.docRepository.GetAllFromPath(ctx, node.Path)
 	if err != nil {
 		return err
 	}
