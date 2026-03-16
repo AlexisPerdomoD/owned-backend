@@ -28,6 +28,7 @@ var (
 	ErrInternalInstance        = errors.New("internal")
 	ErrNotImplementedInstance  = errors.New("not_implemented")
 	ErrUnknownInstance         = errors.New("unknown")
+	ErrIlegalDBStateInstance   = errors.New("illegal_db_state")
 )
 
 func ErrNotFound(detail map[string]string) *AppError {
@@ -72,4 +73,8 @@ func ErrNotImplemented(detail map[string]string) *AppError {
 
 func ErrUnknown(detail map[string]string) *AppError {
 	return &AppError{Kind: ErrUnknownInstance, Detail: detail}
+}
+
+func ErrIlegalDBState(detail map[string]string) *AppError {
+	return &AppError{Kind: ErrIlegalDBStateInstance, Detail: detail}
 }
