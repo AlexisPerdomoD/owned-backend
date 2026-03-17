@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 
+	"ownned/internal/application/auth"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
@@ -24,17 +25,13 @@ type CreateUsrUseCase struct {
 
 func (uc *CreateUsrUseCase) Execute(
 	ctx context.Context,
-	creatorID domain.UsrID,
 	args dto.CreateUsrDTO,
 ) (*domain.Usr, error) {
-	creator, err := uc.ur.GetByID(ctx, creatorID)
-	if err != nil {
+	if err := args.Validate(); err != nil {
 		return nil, err
 	}
 
-	if creator.Role != domain.SuperUsrRole {
-		return nil, apperror.ErrForbidden(map[string]string{"error": "Usr does not have enought privileges to do this action"})
-	}
+	defer auth.ZeroBytes(args.Pwd)
 
 	usr, err := uc.ur.GetByUsername(ctx, args.Username)
 	if err != nil {
@@ -110,6 +107,10 @@ func (uc *CreateUsrUseCase) Execute(
 			return err
 		}
 
+		if err := tx.UsrPwdRepository().SetPwd(ctx, usr.ID, args.Pwd); err != nil {
+			return err
+		}
+
 		if err := tx.NodeRepository().Create(txCtx, usrNodeRoot); err != nil {
 			return err
 		}
@@ -128,8 +129,11 @@ func (uc *CreateUsrUseCase) Execute(
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return usr, err
+	return usr, nil
 }
 
 func NewCreateUsrUseCase(

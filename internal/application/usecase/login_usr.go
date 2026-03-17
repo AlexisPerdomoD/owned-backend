@@ -1,0 +1,78 @@
+package usecase
+
+import (
+	"context"
+	"errors"
+
+	"ownned/internal/application/auth"
+	"ownned/internal/application/dto"
+	"ownned/internal/domain"
+	"ownned/pkg/apperror"
+)
+
+type LoginUsrUseCase struct {
+	usrRepository    domain.UsrRepository
+	usrPwdRepository domain.UsrPwdRepository
+	pwdHasher        auth.PwdHasher
+	jwtManager       auth.JWTManager
+}
+
+func (uc *LoginUsrUseCase) Execute(
+	ctx context.Context,
+	args dto.LoginUsrDTO,
+) (session string, err error) {
+	if err := args.Validate(); err != nil {
+		return "", err
+	}
+
+	defer auth.ZeroBytes(args.Pwd)
+
+	usr, err := uc.usrRepository.GetByUsername(ctx, args.Username)
+	if err != nil {
+		return "", err
+	}
+
+	if usr == nil {
+		details := make(map[string]string)
+		details["reason"] = "invalid credentials"
+		return "", apperror.ErrUnauthenticated(details)
+	}
+
+	usrPwdHash, err := uc.usrPwdRepository.GetPwd(ctx, usr.ID)
+	if err != nil {
+		return "", err
+	}
+	defer auth.ZeroBytes(usrPwdHash)
+
+	err = uc.pwdHasher.Compare(usrPwdHash, args.Pwd)
+	if err != nil {
+		details := make(map[string]string)
+		details["reason"] = "invalid credentials"
+		if errors.Is(err, auth.ErrInvalidPwd) {
+			return "", apperror.ErrUnauthenticated(details)
+		}
+
+		return "", err
+	}
+
+	sessionPayload := auth.JWTAccessPayload{
+		UsrID: usr.ID.String(),
+		Role:  usr.Role,
+	}
+
+	session, err = uc.jwtManager.GenerateAccessToken(sessionPayload)
+	if err != nil {
+		return "", err
+	}
+
+	return session, nil
+}
+
+func NewLoginUsrUseCase(
+	ur domain.UsrRepository,
+	upr domain.UsrPwdRepository,
+	ph auth.PwdHasher,
+	jm auth.JWTManager,
+) *LoginUsrUseCase {
+	return &LoginUsrUseCase{ur, upr, ph, jm}
+}
