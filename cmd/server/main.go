@@ -11,7 +11,7 @@ import (
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/config"
 	"ownned/internal/infrastructure/db/pg"
-	"ownned/internal/infrastructure/service"
+	"ownned/internal/infrastructure/serv"
 	"ownned/internal/infrastructure/transport/http/handler"
 	"ownned/internal/infrastructure/transport/http/middleware"
 
@@ -21,13 +21,21 @@ import (
 // start point baby
 func main() {
 	cfg := config.LoadEnvConfig()
-	// services
+	// SERVICES
 	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	jwtService := service.NewJWTManagerST(
+	jwtService := serv.NewJWTManagerST(
 		[]byte(cfg.SessionSecret),
 		time.Hour,
 		"ownned",
+	)
+
+	pwdHasher := serv.NewPwdHasherArgon2(
+		cfg.PwdTime,
+		cfg.PwdMemKiB,
+		cfg.PwdThreads,
+		cfg.PwdHashLen,
+		cfg.PwdSaltLen,
 	)
 
 	// DB
@@ -48,14 +56,16 @@ func main() {
 	}
 
 	usrRepository := pg.NewUsrRepository(db)
-	nodeRepository := pg.NewNodeRepository(db)
-	groupUsrRepository := pg.NewGroupUsrRepository(db)
+	usrPwdRepository := pg.NewUsrPwdRepository(db)
+	// nodeRepository := pg.NewNodeRepository(db)
+	// groupUsrRepository := pg.NewGroupUsrRepository(db)
 	// var docRepository domain.DocRepository = repo.NewDocRepository()
 	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
-	createUsr := usecase.NewCreateUsrUseCase(usrRepository, nodeRepository, groupUsrRepository, unitOfWorkFactory, l)
+	createUsr := usecase.NewCreateUsrUseCase(usrRepository, unitOfWorkFactory, pwdHasher, l)
 	getUsr := usecase.NewGetUsrUseCase(usrRepository)
-	usrHandler := handler.NewUsrHandler(createUsr, getUsr)
+	loginUsr := usecase.NewLoginUsrUseCase(usrRepository, usrPwdRepository, pwdHasher, jwtService)
+	usrHandler := handler.NewUsrHandler(loginUsr, createUsr, getUsr, cfg.Mode != "local")
 
 	r := chi.NewRouter()
 

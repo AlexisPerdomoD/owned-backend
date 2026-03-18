@@ -45,9 +45,11 @@ INSERT INTO fs.usrs(
 	role,
 	firstname,
 	lastname,
-	username
+	username,
+	created_at,
+	updated_at
 ) VALUES 
-	( $1, $2, $3, $4, $5 )`
+	( $1, $2, $3, $4, $5, $6, $7 )`
 
 const updateUsrQuery string = `
 UPDATE fs.usrs SET
@@ -58,46 +60,46 @@ UPDATE fs.usrs SET
 WHERE id=5`
 
 type usrRow struct {
-	id        domain.UsrID   `db:"id"`
-	role      domain.UsrRole `db:"role"`
-	firstname string         `db:"firstname"`
-	lastname  string         `db:"lastname"`
-	username  string         `db:"username"`
-	createdAt time.Time      `db:"created_at"`
-	updatedAt time.Time      `db:"updated_at"`
+	ID        domain.UsrID   `db:"id"`
+	Role      domain.UsrRole `db:"role"`
+	Firstname string         `db:"firstname"`
+	Lastname  string         `db:"lastname"`
+	Username  string         `db:"username"`
+	CreatedAt time.Time      `db:"created_at"`
+	UpdatedAt time.Time      `db:"updated_at"`
 }
 
 func (r *usrRow) ToDomain() domain.Usr {
 	return domain.Usr{
-		ID:        r.id,
-		Role:      r.role,
-		Firstname: r.firstname,
-		Lastname:  r.lastname,
-		Username:  r.username,
-		CreatedAt: r.createdAt,
-		UpdatedAt: r.updatedAt,
+		ID:        r.ID,
+		Role:      r.Role,
+		Firstname: r.Firstname,
+		Lastname:  r.Lastname,
+		Username:  r.Username,
+		CreatedAt: r.CreatedAt,
+		UpdatedAt: r.UpdatedAt,
 	}
 }
 
 type usrGroupAccessRow struct {
 	usrRow
-	access     domain.GroupUsrAccess `db:"access"`
-	assignedAt time.Time             `db:"assigned_at"`
+	Access     domain.GroupUsrAccess `db:"access"`
+	AssignedAt time.Time             `db:"assigned_at"`
 }
 
 func (r *usrGroupAccessRow) ToDomain() domain.UsrGroupAccess {
 	return domain.UsrGroupAccess{
 		Usr: domain.Usr{
-			ID:        r.id,
-			Role:      r.role,
-			Firstname: r.firstname,
-			Lastname:  r.lastname,
-			Username:  r.username,
-			CreatedAt: r.createdAt,
-			UpdatedAt: r.updatedAt,
+			ID:        r.ID,
+			Role:      r.Role,
+			Firstname: r.Firstname,
+			Lastname:  r.Lastname,
+			Username:  r.Username,
+			CreatedAt: r.CreatedAt,
+			UpdatedAt: r.UpdatedAt,
 		},
-		Access:     r.access,
-		AssignDate: r.assignedAt,
+		Access:     r.Access,
+		AssignDate: r.AssignedAt,
 	}
 }
 
@@ -107,7 +109,7 @@ type usrRepository struct {
 
 func (r *usrRepository) GetByID(ctx context.Context, id domain.UsrID) (*domain.Usr, error) {
 	q := fmt.Sprintf("%s\nWHERE u.id=$1", getUsrQuery)
-	row := usrRow{}
+	row := &usrRow{}
 	error := sqlx.GetContext(ctx, r.db, row, q, id)
 	if error != nil {
 		if error == sql.ErrNoRows {
@@ -123,7 +125,7 @@ func (r *usrRepository) GetByID(ctx context.Context, id domain.UsrID) (*domain.U
 
 func (r *usrRepository) GetByUsername(ctx context.Context, username string) (*domain.Usr, error) {
 	q := fmt.Sprintf("%s\nWHERE u.username=$1", getUsrQuery)
-	row := usrRow{}
+	row := &usrRow{}
 	error := sqlx.GetContext(ctx, r.db, row, q, username)
 	if error != nil {
 		if error == sql.ErrNoRows {

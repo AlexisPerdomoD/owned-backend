@@ -1,5 +1,5 @@
-// Package auth provides the implementation of the authentication layer.
-package auth
+// Package sctx provides the implementation of the authentication layer to centralize session information handling from contexts.
+package sctx
 
 import (
 	"context"

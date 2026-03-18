@@ -4,51 +4,56 @@ import (
 	"net/http"
 	"strings"
 
-	appauth "ownned/internal/application/auth"
-	"ownned/internal/infrastructure/auth"
+	"ownned/internal/application/auth"
+	"ownned/internal/infrastructure/sctx"
 	"ownned/internal/infrastructure/transport/http/response"
 	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
 )
 
 type AuthMiddleware struct {
-	jwtValidator appauth.JWTManager
+	jwtValidator auth.JWTManager
+}
+
+func (m *AuthMiddleware) getSessionFromBearer(h http.Header) (*auth.JWTAccessPayload, error) {
+	token := h.Get("Authorization")
+	if token == "" {
+		return nil, apperror.ErrUnauthenticated(
+			map[string]string{
+				"general": "session token not found",
+			})
+	}
+
+	if !strings.HasPrefix(token, "Bearer ") {
+		return nil, apperror.ErrUnauthenticated(
+			map[string]string{
+				"general": "malformed session token",
+			})
+	}
+
+	token = strings.TrimPrefix(token, "Bearer ")
+	session, err := m.jwtValidator.ValidateAccessToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
 }
 
 func (m *AuthMiddleware) IsAuthenticated(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
-		if token == "" {
-			_ = response.WriteJSONError(w, apperror.ErrUnauthenticated(
-				map[string]string{
-					"general": "session token not found",
-				}))
-			return
-		}
-
-		if !strings.HasPrefix(token, "Bearer ") {
-			_ = response.WriteJSONError(w, apperror.ErrUnauthenticated(
-				map[string]string{
-					"general": "malformed session token",
-				}))
-			return
-		}
-
-		token = strings.TrimPrefix(token, "Bearer ")
-
-		session, err := m.jwtValidator.ValidateAccessToken(token)
+		session, err := m.getSessionFromBearer(r.Header)
 		if err != nil {
 			_ = response.WriteJSONError(w, err)
 			return
 		}
 
-		ctx := auth.SetSession(r.Context(), session)
-
+		ctx := sctx.SetSession(r.Context(), session)
 		next(w, r.WithContext(ctx))
 	})
 }
 
-func NewAuthMiddleware(jwtValidator appauth.JWTManager) *AuthMiddleware {
+func NewAuthMiddleware(jwtValidator auth.JWTManager) *AuthMiddleware {
 	helper.NotNilOrPanic(jwtValidator, "jwtValidator")
 	return &AuthMiddleware{jwtValidator}
 }

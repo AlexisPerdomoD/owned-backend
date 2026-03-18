@@ -1,4 +1,4 @@
-package service
+package serv
 
 import (
 	"bytes"
@@ -268,7 +268,7 @@ func TestNewPwdHasherArgon2_Panics(t *testing.T) {
 				}
 			}()
 
-			NewPwdHasher(tt.time, tt.mem, tt.threads, tt.keyLen, tt.saltLen)
+			NewPwdHasherArgon2(tt.time, tt.mem, tt.threads, tt.keyLen, tt.saltLen)
 		})
 	}
 }

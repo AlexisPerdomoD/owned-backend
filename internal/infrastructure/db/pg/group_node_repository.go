@@ -19,15 +19,15 @@ SELECT
 FROM fs.group_nodes gn`
 
 const upsertGroupNodeQuery = `
-INSERT INTO fs.group_usrs(
+INSERT INTO fs.group_nodes(
 	group_id,
-	usr_id,
+	node_id,
 	assigned_at)
 VALUES (
 	:group_id,
-	:usr_id,
+	:node_id,
 	:assigned_at) 
-ON CONFLICT(group_id, usr_id) DO NOTHING`
+ON CONFLICT(group_id, node_id) DO NOTHING`
 
 type groupNodeRow struct {
 	GroupID    domain.GroupID `db:"group_id"`
@@ -68,7 +68,7 @@ func (r *groupNodeRepository) Upsert(ctx context.Context, d *domain.UpsertGroupN
 		return ErrInvalidArgument
 	}
 
-	row := groupNodeRow{
+	row := &groupNodeRow{
 		NodeID:     d.NodeID,
 		GroupID:    d.GroupID,
 		AssignedAt: time.Now().UTC(),
@@ -84,11 +84,11 @@ func (r *groupNodeRepository) UpsertAll(ctx context.Context, d []domain.UpsertGr
 		return ErrInvalidArgument
 	}
 	assignedAt := time.Now().UTC()
-	rows := make([]domain.GroupNode, len(d))
+	rows := make([]groupNodeRow, len(d))
 	for i, gn := range d {
 		rows[i].GroupID = gn.GroupID
 		rows[i].NodeID = gn.NodeID
-		rows[i].AssignDate = assignedAt
+		rows[i].AssignedAt = assignedAt
 	}
 
 	_, err := sqlx.NamedExecContext(ctx, r.db, upsertGroupNodeQuery, rows)

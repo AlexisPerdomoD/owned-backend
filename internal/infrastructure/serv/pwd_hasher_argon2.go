@@ -1,4 +1,4 @@
-package service
+package serv
 
 import (
 	"bytes"
@@ -148,7 +148,18 @@ func (h *pwdHasherArgon2) RequiredReHash(hashedPassword []byte) bool {
 	return parsed.mem != h.mem || parsed.time != h.time || parsed.threads != h.threads
 }
 
-func NewPwdHasher(
+// NewPwdHasherArgon2 returns a instance of pwdHasherArgon2
+//
+// - time is the number of passes over the memory. The recommended value is 3.
+//
+// - mem is the size of the memory in KiB. The recommended value is 64*1024.
+//
+// - threads is the number of threads to use. The recommended value is 4.
+//
+// - keyLen is the length of the resulting key in bytes. The recommended value is 32.
+//
+// - saltLen is the length of the salt in bytes. The recommended value is 16.
+func NewPwdHasherArgon2(
 	time uint32,
 	memKiB uint32,
 	threads uint8,

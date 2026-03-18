@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"runtime/debug"
 
 	"ownned/internal/application/auth"
 	"ownned/internal/application/dto"
@@ -16,11 +17,10 @@ import (
 )
 
 type CreateUsrUseCase struct {
-	ur     domain.UsrRepository
-	nr     domain.NodeRepository
-	gur    domain.GroupUsrRepository
-	uow    domain.UnitOfWorkFactory
-	logger *slog.Logger
+	ur        domain.UsrRepository
+	uow       domain.UnitOfWorkFactory
+	pwdHasher auth.PwdHasher
+	logger    *slog.Logger
 }
 
 func (uc *CreateUsrUseCase) Execute(
@@ -31,8 +31,6 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, err
 	}
 
-	defer auth.ZeroBytes(args.Pwd)
-
 	usr, err := uc.ur.GetByUsername(ctx, args.Username)
 	if err != nil {
 		return nil, err
@@ -41,6 +39,12 @@ func (uc *CreateUsrUseCase) Execute(
 	if usr != nil {
 		return nil, apperror.ErrConflic(map[string]string{"error": "Username already in use"})
 	}
+
+	pwdHash, err := uc.pwdHasher.Hash([]byte(args.Pwd))
+	if err != nil {
+		return nil, err
+	}
+	defer auth.ZeroBytes(pwdHash)
 
 	usrID, err := uuid.NewV7()
 	if err != nil {
@@ -104,26 +108,33 @@ func (uc *CreateUsrUseCase) Execute(
 	err = uc.uow.Do(ctx, func(tx domain.UnitOfWork) error {
 		txCtx := tx.Ctx()
 		if err := tx.UsrRepository().Create(txCtx, usr); err != nil {
+			uc.logger.DebugContext(txCtx, "error creating usr", "err", err, "stack", debug.Stack())
 			return err
 		}
 
-		if err := tx.UsrPwdRepository().SetPwd(ctx, usr.ID, args.Pwd); err != nil {
+		if err := tx.UsrPwdRepository().SetPwd(txCtx, usr.ID, pwdHash); err != nil {
+			uc.logger.DebugContext(txCtx, "error creating usr pwd", "err", err, "stack", debug.Stack())
 			return err
 		}
 
 		if err := tx.NodeRepository().Create(txCtx, usrNodeRoot); err != nil {
+			uc.logger.DebugContext(txCtx, "error creating usr node", "err", err, "stack", debug.Stack())
 			return err
 		}
 
 		if err := tx.GroupRepository().Create(txCtx, usrRootGroup); err != nil {
+			uc.logger.DebugContext(txCtx, "error creating usr group", "err", err, "stack", debug.Stack())
+
 			return err
 		}
 
 		if err := tx.GroupNodeRepository().Upsert(txCtx, nodeRootGroup); err != nil {
+			uc.logger.WarnContext(txCtx, "error creating usr group node", "err", err, "stack", debug.Stack())
 			return err
 		}
 
 		if err := tx.GroupUsrRepository().UpsertAll(txCtx, usrGroups.Slice()); err != nil {
+			uc.logger.DebugContext(txCtx, "error creating usr group usr", "err", err, "stack", debug.Stack())
 			return err
 		}
 
@@ -138,15 +149,14 @@ func (uc *CreateUsrUseCase) Execute(
 
 func NewCreateUsrUseCase(
 	ur domain.UsrRepository,
-	nr domain.NodeRepository,
-	gur domain.GroupUsrRepository,
 	uow domain.UnitOfWorkFactory,
+	pwdHasher auth.PwdHasher,
 	mainLogger *slog.Logger,
 ) *CreateUsrUseCase {
-	if ur == nil || nr == nil || uow == nil || mainLogger == nil || gur == nil {
+	if ur == nil || uow == nil || pwdHasher == nil || mainLogger == nil {
 		log.Panicln("NewCreateUsrUseCase received a nil reference as dependency")
 	}
 
 	logger := mainLogger.With("usecase", "CreateUsrUseCase")
-	return &CreateUsrUseCase{ur, nr, gur, uow, logger}
+	return &CreateUsrUseCase{ur, uow, pwdHasher, logger}
 }

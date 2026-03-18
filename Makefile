@@ -79,4 +79,7 @@ migrate-down: check-migrate
 	migrate -path $(PG_MIGRATION_DIR) -database "$(PG_DB_URL)" down
 
 start: 
-	@go run ./cmd/server
+	go run ./cmd/server 
+
+seed-root: 
+	GOTRACEBACK=all go run ./cmd/root $(ARGS)

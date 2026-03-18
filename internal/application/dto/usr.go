@@ -12,7 +12,7 @@ type CreateUsrDTO struct {
 	Firstname string            `json:"firstname" validate:"required,min=2,max=50"`
 	Lastname  string            `json:"lastname" validate:"required,min=2,max=50"`
 	Username  string            `json:"username" validate:"required,email"`
-	Pwd       []byte            `json:"password" validate:"required,min=8,max=255,alphanum"`
+	Pwd       string            `json:"password" validate:"required,min=8,max=255,alphanum"`
 	Access    []CreateAccessDTO `json:"access" validate:"required,dive"`
 }
 
@@ -22,7 +22,7 @@ func (dto *CreateUsrDTO) Validate() error {
 
 type LoginUsrDTO struct {
 	Username string `json:"username" validate:"required,email"`
-	Pwd      []byte `json:"password" validate:"required,min=8,max=255,alphanum"`
+	Pwd      string `json:"password" validate:"required,min=8,max=255,alphanum"`
 }
 
 func (dto *LoginUsrDTO) Validate() error {

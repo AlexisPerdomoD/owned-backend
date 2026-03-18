@@ -96,7 +96,7 @@ type EnvConfig struct {
 
 func LoadEnvConfig() *EnvConfig {
 	return &EnvConfig{
-		Mode:           getenv("MODE", "dev"),
+		Mode:           getenv("MODE", "local"),
 		Port:           getenvInt("PORT", 3000),
 		SessionSecret:  requireEnv("SESSION_SECRET"),
 		PwdSaltLen:     getenvUint32("PWD_SALT_LEN", 16),

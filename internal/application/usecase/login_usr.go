@@ -25,8 +25,6 @@ func (uc *LoginUsrUseCase) Execute(
 		return "", err
 	}
 
-	defer auth.ZeroBytes(args.Pwd)
-
 	usr, err := uc.usrRepository.GetByUsername(ctx, args.Username)
 	if err != nil {
 		return "", err
@@ -44,7 +42,7 @@ func (uc *LoginUsrUseCase) Execute(
 	}
 	defer auth.ZeroBytes(usrPwdHash)
 
-	err = uc.pwdHasher.Compare(usrPwdHash, args.Pwd)
+	err = uc.pwdHasher.Compare(usrPwdHash, []byte(args.Pwd))
 	if err != nil {
 		details := make(map[string]string)
 		details["reason"] = "invalid credentials"
