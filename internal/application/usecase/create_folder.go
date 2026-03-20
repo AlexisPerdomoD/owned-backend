@@ -7,6 +7,8 @@ import (
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+
+	"github.com/google/uuid"
 )
 
 type CreateFolderUseCase struct {
@@ -15,7 +17,7 @@ type CreateFolderUseCase struct {
 	groupUsrRepository domain.GroupUsrRepository
 }
 
-func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.UsrID, dto *dto.CreateFolderInputDTO) (*domain.Node, error) {
+func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.UsrID, args *dto.CreateFolderDTO) (*domain.Node, error) {
 	usr, err := uc.usrRepository.GetByID(ctx, creatorID)
 	if err != nil {
 		return nil, err
@@ -29,28 +31,22 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		return nil, apperror.ErrForbidden(nil)
 	}
 
-	parentID, folder := dto.GetData()
-
-	parent, err := uc.nodeRepository.GetByID(ctx, parentID)
+	parent, err := uc.nodeRepository.GetByID(ctx, args.ParentID)
 	if err != nil {
 		return nil, err
 	}
 
 	if parent == nil {
-		return nil, apperror.ErrNotFound(
-			map[string]string{
-				"error": "parent node was not found",
-			})
+		detail := make(map[string]string)
+		detail["reason"] = "parent node was not found"
+		return nil, apperror.ErrNotFound(detail)
 	}
 
 	if parent.Type != domain.FolderNodeType {
-		return nil, apperror.ErrBadRequest(
-			map[string]string{
-				"error": "parent node is not a folder type",
-			})
+		detail := make(map[string]string)
+		detail["reason"] = "parent node is not a folder type"
+		return nil, apperror.ErrBadRequest(detail)
 	}
-
-	folder.Path = parent.Path.NewChildPath(folder.ID)
 
 	if usr.Role != domain.SuperUsrRole {
 		access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, parent.ID)
@@ -59,19 +55,31 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		}
 
 		if access == nil || *access != domain.GroupWriteAccess {
-			return nil, apperror.ErrForbidden(
-				map[string]string{
-					"error": fmt.Sprintf("usr cannot create nodes on this folder=%s with ID=%s", parent.Name, parent.ID),
-				})
+			detail := make(map[string]string)
+			detail["reason"] = fmt.Sprintf("Cannot create nodes on this folder=%s with ID=%s", parent.Name, parent.ID)
+			return nil, apperror.ErrForbidden(detail)
 		}
 
+	}
+
+	folderID, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
+	folder := &domain.Node{
+		ID:          folderID,
+		Name:        args.Name,
+		Description: args.Description,
+		Type:        domain.FolderNodeType,
+		Path:        parent.Path.NewChildPath(folderID),
 	}
 
 	if err := uc.nodeRepository.Create(ctx, folder); err != nil {
 		return nil, err
 	}
 
-	return folder, err
+	return folder, nil
 }
 
 func NewCreateFolderUseCase(
