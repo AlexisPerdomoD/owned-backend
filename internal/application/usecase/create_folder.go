@@ -31,7 +31,16 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		return nil, apperror.ErrForbidden(nil)
 	}
 
-	parent, err := uc.nodeRepository.GetByID(ctx, args.ParentID)
+	if err := args.Validate(); err != nil {
+		return nil, err
+	}
+
+	parentID, err := uuid.Parse(args.ParentID)
+	if err != nil {
+		return nil, err
+	}
+
+	parent, err := uc.nodeRepository.GetByID(ctx, parentID)
 	if err != nil {
 		return nil, err
 	}

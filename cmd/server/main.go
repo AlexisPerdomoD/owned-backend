@@ -8,15 +8,42 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/config"
 	"ownned/internal/infrastructure/db/pg"
 	"ownned/internal/infrastructure/serv"
 	"ownned/internal/infrastructure/transport/http/handler"
 	"ownned/internal/infrastructure/transport/http/middleware"
-
-	"github.com/go-chi/chi/v5"
 )
+
+func logRoutes(r chi.Router, l *slog.Logger) {
+	for idx, route := range r.Routes() {
+		l.Info("registered route", "idx", idx+1, "path", route.Pattern)
+		if route.SubRoutes == nil {
+			continue
+		}
+
+		if len(route.SubRoutes.Routes()) == 0 {
+			continue
+		}
+
+		for subIdx, subRoute := range route.SubRoutes.Routes() {
+			l.Info("registered sub route",
+				"idx", fmt.Sprintf("%d.%d", idx+1, subIdx+1),
+				"path", fmt.Sprintf("%s%s",
+					strings.TrimSuffix(
+						route.Pattern,
+						"/*",
+					),
+					subRoute.Pattern,
+				),
+			)
+		}
+
+	}
+}
 
 // start point baby
 func main() {
@@ -62,7 +89,7 @@ func main() {
 	usrPwdRepository := pg.NewUsrPwdRepository(db)
 	nodeRepository := pg.NewNodeRepository(db)
 	groupRepository := pg.NewGroupRepository(db)
-	// groupUsrRepository := pg.NewGroupUsrRepository(db)
+	groupUsrRepository := pg.NewGroupUsrRepository(db)
 	// var docRepository domain.DocRepository = repo.NewDocRepository()
 	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
@@ -70,11 +97,11 @@ func main() {
 	createUsr := usecase.NewCreateUsrUseCase(usrRepository, unitOfWorkFactory, pwdHasher, l)
 	getUsr := usecase.NewGetUsrUseCase(usrRepository)
 	loginUsr := usecase.NewLoginUsrUseCase(usrRepository, usrPwdRepository, pwdHasher, jwtService)
+	// USR ROUTES
 	usrHandler := handler.NewUsrHandler(loginUsr, createUsr, getUsr, handler.UsrHandlerConfig{
 		Secure:   cfg.Mode != "local",
 		SameSite: http.SameSiteLaxMode,
 	})
-	// USR ROUTES
 	usrR := chi.NewRouter()
 	usrR.Get("/{id}", authmiddleware.IsAuthenticated(usrHandler.GetUsrHandler))
 	usrR.Post("/", authmiddleware.IsAuthenticated(usrHandler.CreateUsrHandler))
@@ -82,12 +109,14 @@ func main() {
 
 	// NODES
 	getRoot := usecase.NewGetRootNodesUseCase(nodeRepository, usrRepository, groupRepository, l)
-	nodeHandler := handler.NewNodeHandler(getRoot)
+	createFolder := usecase.NewCreateFolderUseCase(nodeRepository, usrRepository, groupUsrRepository)
+	// NODES ROUTES
+	nodeHandler := handler.NewNodeHandler(getRoot, createFolder)
 	nodeR := chi.NewRouter()
 	nodeR.Get("/", authmiddleware.IsAuthenticated(nodeHandler.GetRootHandler))
-
+	nodeR.Post("/", authmiddleware.IsAuthenticated(nodeHandler.CreateFolderHandler))
+	// SERVER ROUTES
 	r := chi.NewRouter()
-
 	r.Mount("/api/v1/usrs", usrR)
 	r.Mount("/api/v1/nodes", nodeR)
 	logRoutes(r, l)
@@ -95,31 +124,4 @@ func main() {
 	l.Info("server starting at:", "port", cfg.Port)
 
 	_ = http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r)
-}
-
-func logRoutes(r chi.Router, l *slog.Logger) {
-	for idx, route := range r.Routes() {
-		l.Info("registered route", "idx", idx+1, "path", route.Pattern)
-		if route.SubRoutes == nil {
-			continue
-		}
-
-		if len(route.SubRoutes.Routes()) == 0 {
-			continue
-		}
-
-		for subIdx, subRoute := range route.SubRoutes.Routes() {
-			l.Info("registered sub route",
-				"idx", fmt.Sprintf("%d.%d", idx+1, subIdx+1),
-				"path", fmt.Sprintf("%s%s",
-					strings.TrimSuffix(
-						route.Pattern,
-						"/*",
-					),
-					subRoute.Pattern,
-				),
-			)
-		}
-
-	}
 }

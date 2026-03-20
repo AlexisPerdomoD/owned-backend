@@ -13,8 +13,8 @@ type NodeView struct {
 	Type        domain.NodeType `json:"type"`
 	Path        domain.NodePath `json:"path"`
 	Children    []NodeView      `json:"children,omitempty"`
-	CreatedAt   time.Time       `json:"createdAt"`
-	UpdatedAt   time.Time       `json:"updatedAt"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
 }
 
 func NodeViewFromDomain(n *domain.Node, chldr []NodeView) NodeView {

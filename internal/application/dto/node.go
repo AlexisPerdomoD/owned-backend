@@ -13,9 +13,9 @@ type FolderNodeDTO struct {
 }
 
 type CreateFolderDTO struct {
-	ParentID    domain.NodeID `json:"parent_id" validate:"required"`
-	Name        string        `json:"name" validate:"required,alphanum,min=1,max=255,excludes=\\/"`
-	Description string        `json:"description" validate:"max=255"`
+	ParentID    string `json:"parent_id" validate:"required,uuid"`
+	Name        string `json:"name" validate:"required,min=1,max=255,excludes=\\/"`
+	Description string `json:"description" validate:"max=255"`
 }
 
 func (dto *CreateFolderDTO) Validate() error {

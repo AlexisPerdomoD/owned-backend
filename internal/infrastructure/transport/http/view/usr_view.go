@@ -13,7 +13,8 @@ type UsrView struct {
 	Firstname string         `json:"firstname"`
 	Lastname  string         `json:"lastname"`
 	Username  string         `json:"username"`
-	CreatedAt time.Time      `json:"createdAt"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 func UsrViewFromDomain(usr *domain.Usr) UsrView {
@@ -27,5 +28,6 @@ func UsrViewFromDomain(usr *domain.Usr) UsrView {
 		Firstname: usr.Firstname,
 		Lastname:  usr.Lastname,
 		CreatedAt: usr.CreatedAt,
+		UpdatedAt: usr.UpdatedAt,
 	}
 }
