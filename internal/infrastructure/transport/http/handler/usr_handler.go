@@ -8,7 +8,7 @@ import (
 
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/transport/http/decoder"
-	"ownned/internal/infrastructure/transport/http/response"
+	"ownned/internal/infrastructure/transport/http/encoder"
 	"ownned/internal/infrastructure/transport/http/view"
 	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
@@ -31,17 +31,17 @@ func (c *UsrHandler) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		detail := make(map[string]string)
 		detail["usrID"] = "invalid uuid provided"
-		_ = response.WriteJSONError(w, apperror.ErrBadRequest(detail))
+		_ = encoder.WriteJSONError(w, apperror.ErrBadRequest(detail))
 		return
 	}
 
 	usr, err := c.getUsr.Execute(r.Context(), usrID)
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
-	_ = response.WriteJSON(w, http.StatusOK, view.UsrViewFromDomain(usr))
+	_ = encoder.WriteJSON(w, http.StatusOK, view.UsrViewFromDomain(usr))
 }
 
 func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
@@ -49,18 +49,18 @@ func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
 
 	body, err := decoder.CreateUsrDTOFromJSON(r.Body)
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
 	ctx := r.Context()
 	usr, err := c.createUsr.Execute(ctx, *body)
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
-	_ = response.WriteJSON(w, http.StatusCreated, view.UsrViewFromDomain(usr))
+	_ = encoder.WriteJSON(w, http.StatusCreated, view.UsrViewFromDomain(usr))
 }
 
 func (c *UsrHandler) LoginUsrHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,13 +68,13 @@ func (c *UsrHandler) LoginUsrHandler(w http.ResponseWriter, r *http.Request) {
 
 	body, err := decoder.LoginUsrDTOFromJSON(r.Body)
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
 	sessionToken, err := c.loginUsr.Execute(r.Context(), *body)
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (c *UsrHandler) LoginUsrHandler(w http.ResponseWriter, r *http.Request) {
 
 	resp := make(map[string]string)
 	resp["message"] = "logged properly"
-	_ = response.WriteJSON(w, http.StatusCreated, resp)
+	_ = encoder.WriteJSON(w, http.StatusCreated, resp)
 }
 
 func NewUsrHandler(

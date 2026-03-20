@@ -7,7 +7,7 @@ import (
 	"ownned/internal/application/auth"
 	"ownned/internal/domain"
 	"ownned/internal/infrastructure/sctx"
-	"ownned/internal/infrastructure/transport/http/response"
+	"ownned/internal/infrastructure/transport/http/encoder"
 	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
 )
@@ -46,7 +46,7 @@ func (m *AuthMiddleware) IsAuthenticated(next http.HandlerFunc) http.HandlerFunc
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := m.getSessionFromBearer(r)
 		if err != nil {
-			_ = response.WriteJSONError(w, err)
+			_ = encoder.WriteJSONError(w, err)
 			return
 		}
 
@@ -59,12 +59,12 @@ func (m *AuthMiddleware) IsSuperUsr(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := m.getSessionFromBearer(r)
 		if err != nil {
-			_ = response.WriteJSONError(w, err)
+			_ = encoder.WriteJSONError(w, err)
 			return
 		}
 
 		if session.Role != domain.SuperUsrRole {
-			_ = response.WriteJSONError(w, apperror.ErrUnauthenticated(nil))
+			_ = encoder.WriteJSONError(w, apperror.ErrUnauthenticated(nil))
 			return
 		}
 

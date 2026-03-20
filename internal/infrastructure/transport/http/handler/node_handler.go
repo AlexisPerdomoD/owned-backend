@@ -6,7 +6,7 @@ import (
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/sctx"
 	"ownned/internal/infrastructure/transport/http/decoder"
-	"ownned/internal/infrastructure/transport/http/response"
+	"ownned/internal/infrastructure/transport/http/encoder"
 	"ownned/internal/infrastructure/transport/http/view"
 	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
@@ -22,19 +22,19 @@ type NodeHandler struct {
 func (c *NodeHandler) GetRootHandler(w http.ResponseWriter, r *http.Request) {
 	session, err := sctx.GetSession(r.Context())
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
 	usrID, err := uuid.Parse(session.UsrID)
 	if err != nil {
-		_ = response.WriteJSONError(w, apperror.ErrUnauthenticated(nil))
+		_ = encoder.WriteJSONError(w, apperror.ErrUnauthenticated(nil))
 		return
 	}
 
 	nodes, err := c.getRoot.Execute(r.Context(), usrID)
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (c *NodeHandler) GetRootHandler(w http.ResponseWriter, r *http.Request) {
 		views[i] = view.NodeViewFromDomain(&n, nil)
 	}
 
-	_ = response.WriteJSON(w, http.StatusOK, views)
+	_ = encoder.WriteJSON(w, http.StatusOK, views)
 }
 
 func (c *NodeHandler) CreateFolderHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,29 +51,29 @@ func (c *NodeHandler) CreateFolderHandler(w http.ResponseWriter, r *http.Request
 
 	body, err := decoder.CreateFolderDTOFromJSON(r.Body)
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
 	session, err := sctx.GetSession(r.Context())
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
 	usrID, err := uuid.Parse(session.UsrID)
 	if err != nil {
-		_ = response.WriteJSONError(w, apperror.ErrUnauthenticated(nil))
+		_ = encoder.WriteJSONError(w, apperror.ErrUnauthenticated(nil))
 		return
 	}
 
 	folder, err := c.createFolder.Execute(r.Context(), usrID, body)
 	if err != nil {
-		_ = response.WriteJSONError(w, err)
+		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
-	_ = response.WriteJSON(w, http.StatusCreated, view.NodeViewFromDomain(folder, make([]view.NodeView, 0)))
+	_ = encoder.WriteJSON(w, http.StatusCreated, view.NodeViewFromDomain(folder, make([]view.NodeView, 0)))
 }
 
 func NewNodeHandler(

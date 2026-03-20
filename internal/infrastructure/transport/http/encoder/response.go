@@ -1,5 +1,5 @@
-// Package response contains the response functions for the transport layer
-package response
+// Package encoder contains the response functions for the transport layer
+package encoder
 
 import (
 	"encoding/json"
