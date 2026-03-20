@@ -7,20 +7,20 @@ import (
 	"log/slog"
 	"runtime/debug"
 
+	"github.com/google/uuid"
+
 	"ownned/internal/application/auth"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 	"ownned/pkg/col"
-
-	"github.com/google/uuid"
 )
 
 type CreateUsrUseCase struct {
-	ur        domain.UsrRepository
-	uow       domain.UnitOfWorkFactory
-	pwdHasher auth.PwdHasher
-	logger    *slog.Logger
+	usrRepository     domain.UsrRepository
+	unitOfWorkFactory domain.UnitOfWorkFactory
+	pwdHasher         auth.PwdHasher
+	log               *slog.Logger
 }
 
 func (uc *CreateUsrUseCase) Execute(
@@ -31,13 +31,15 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, err
 	}
 
-	usr, err := uc.ur.GetByUsername(ctx, args.Username)
+	usr, err := uc.usrRepository.GetByUsername(ctx, args.Username)
 	if err != nil {
 		return nil, err
 	}
 
 	if usr != nil {
-		return nil, apperror.ErrConflic(map[string]string{"error": "Username already in use"})
+		detail := make(map[string]string)
+		detail["username"] = fmt.Sprintf("username %s already in use", args.Username)
+		return nil, apperror.ErrConflic(detail)
 	}
 
 	pwdHash, err := uc.pwdHasher.Hash([]byte(args.Pwd))
@@ -71,16 +73,16 @@ func (uc *CreateUsrUseCase) Execute(
 
 	usrNodeRoot := &domain.Node{
 		ID:          usrNodeRootID,
-		Name:        fmt.Sprintf("root_%s", args.Username),
-		Description: "Root node for user " + args.Username,
+		Name:        fmt.Sprintf("root_%s", usr.ID),
+		Description: "Auto generated root node for particular user.",
 		Type:        domain.FolderNodeType,
 		Path:        domain.NodePathUsrRoot.NewChildPath(usr.ID),
 	}
 
 	usrRootGroup := &domain.Group{
 		ID:          usrGroupID,
-		Name:        fmt.Sprintf("group_%s", args.Username),
-		Description: "Group for user " + args.Username,
+		Name:        fmt.Sprintf("group_%s", usr.ID),
+		Description: "Auto generated group for particular user.",
 	}
 
 	nodeRootGroup := &domain.UpsertGroupNode{
@@ -105,42 +107,41 @@ func (uc *CreateUsrUseCase) Execute(
 		}
 	}
 
-	err = uc.uow.Do(ctx, func(tx domain.UnitOfWork) error {
-		txCtx := tx.Ctx()
-		if err := tx.UsrRepository().Create(txCtx, usr); err != nil {
-			uc.logger.DebugContext(txCtx, "error creating usr", "err", err, "stack", debug.Stack())
+	if err = uc.unitOfWorkFactory.Do(ctx, func(tx domain.UnitOfWork) error {
+		if err := tx.UsrRepository().Create(tx.Ctx(), usr); err != nil {
+			uc.log.DebugContext(tx.Ctx(), "error creating usr", "err", err, "stack", debug.Stack())
 			return err
 		}
 
-		if err := tx.UsrPwdRepository().SetPwd(txCtx, usr.ID, pwdHash); err != nil {
-			uc.logger.DebugContext(txCtx, "error creating usr pwd", "err", err, "stack", debug.Stack())
+		if err := tx.UsrPwdRepository().SetPwd(tx.Ctx(), usr.ID, pwdHash); err != nil {
+			uc.log.DebugContext(tx.Ctx(), "error creating usr pwd", "err", err, "stack", debug.Stack())
 			return err
 		}
 
-		if err := tx.NodeRepository().Create(txCtx, usrNodeRoot); err != nil {
-			uc.logger.DebugContext(txCtx, "error creating usr node", "err", err, "stack", debug.Stack())
+		if err := tx.NodeRepository().Create(tx.Ctx(), usrNodeRoot); err != nil {
+			uc.log.DebugContext(tx.Ctx(), "error creating usr node", "err", err, "stack", debug.Stack())
 			return err
 		}
 
-		if err := tx.GroupRepository().Create(txCtx, usrRootGroup); err != nil {
-			uc.logger.DebugContext(txCtx, "error creating usr group", "err", err, "stack", debug.Stack())
-
+		if err := tx.GroupRepository().Create(tx.Ctx(), usrRootGroup); err != nil {
+			uc.log.DebugContext(tx.Ctx(), "error creating usr group", "err", err, "stack", debug.Stack())
 			return err
 		}
 
-		if err := tx.GroupNodeRepository().Upsert(txCtx, nodeRootGroup); err != nil {
-			uc.logger.WarnContext(txCtx, "error creating usr group node", "err", err, "stack", debug.Stack())
+		if err := tx.GroupNodeRepository().Upsert(tx.Ctx(), nodeRootGroup); err != nil {
+
+			uc.log.WarnContext(tx.Ctx(), "error creating usr group node", "err", err, "stack", debug.Stack())
 			return err
 		}
 
-		if err := tx.GroupUsrRepository().UpsertAll(txCtx, usrGroups.Slice()); err != nil {
-			uc.logger.DebugContext(txCtx, "error creating usr group usr", "err", err, "stack", debug.Stack())
+		if err := tx.GroupUsrRepository().UpsertAll(tx.Ctx(), usrGroups.Slice()); err != nil {
+
+			uc.log.DebugContext(tx.Ctx(), "error creating usr group usr", "err", err, "stack", debug.Stack())
 			return err
 		}
 
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -148,15 +149,15 @@ func (uc *CreateUsrUseCase) Execute(
 }
 
 func NewCreateUsrUseCase(
-	ur domain.UsrRepository,
-	uow domain.UnitOfWorkFactory,
+	usrRepository domain.UsrRepository,
+	unitOfWorkFactory domain.UnitOfWorkFactory,
 	pwdHasher auth.PwdHasher,
 	mainLogger *slog.Logger,
 ) *CreateUsrUseCase {
-	if ur == nil || uow == nil || pwdHasher == nil || mainLogger == nil {
+	if usrRepository == nil || unitOfWorkFactory == nil || pwdHasher == nil || mainLogger == nil {
 		log.Panicln("NewCreateUsrUseCase received a nil reference as dependency")
 	}
 
 	logger := mainLogger.With("usecase", "CreateUsrUseCase")
-	return &CreateUsrUseCase{ur, uow, pwdHasher, logger}
+	return &CreateUsrUseCase{usrRepository, unitOfWorkFactory, pwdHasher, logger}
 }

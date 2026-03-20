@@ -3,44 +3,44 @@ package handler
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/transport/http/decoder"
 	"ownned/internal/infrastructure/transport/http/mapper"
 	"ownned/internal/infrastructure/transport/http/response"
 	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type UsrHandler struct {
-	loginUsrUseCase  *usecase.LoginUsrUseCase
-	createUsrUseCase *usecase.CreateUsrUseCase
-	getUsrUseCase    *usecase.GetUsrUseCase
-	secure           bool
+	loginUsr  *usecase.LoginUsrUseCase
+	createUsr *usecase.CreateUsrUseCase
+	getUsr    *usecase.GetUsrUseCase
+	secure    bool
 }
 
 func (c *UsrHandler) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 	usrID, err := uuid.Parse(chi.URLParam(r, "usrID"))
 	if err != nil {
-		_ = response.WriteJSONError(w, apperror.ErrBadRequest(map[string]string{"usrID": "invalido"}))
+		detail := make(map[string]string)
+		detail["usrID"] = "invalid uuid provided"
+		_ = response.WriteJSONError(w, apperror.ErrBadRequest(detail))
 		return
 	}
 
-	usr, err := c.getUsrUseCase.Execute(r.Context(), usrID)
+	usr, err := c.getUsr.Execute(r.Context(), usrID)
 	if err != nil {
 		_ = response.WriteJSONError(w, err)
 		return
 	}
 
-	view := mapper.UsrViewFromDomain(usr)
-	_ = response.WriteJSON(w, http.StatusOK, view)
+	_ = response.WriteJSON(w, http.StatusOK, mapper.UsrViewFromDomain(usr))
 }
 
 func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: mejorar
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 
 	body, err := decoder.CreateUsrDTOFromJSON(r.Body)
 	if err != nil {
@@ -49,19 +49,17 @@ func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	usr, err := c.createUsrUseCase.Execute(ctx, *body)
+	usr, err := c.createUsr.Execute(ctx, *body)
 	if err != nil {
 		_ = response.WriteJSONError(w, err)
 		return
 	}
 
-	view := mapper.UsrViewFromDomain(usr)
-	_ = response.WriteJSON(w, http.StatusCreated, view)
+	_ = response.WriteJSON(w, http.StatusCreated, mapper.UsrViewFromDomain(usr))
 }
 
 func (c *UsrHandler) LoginUsrHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: mejorar
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 
 	body, err := decoder.LoginUsrDTOFromJSON(r.Body)
 	if err != nil {
@@ -69,8 +67,7 @@ func (c *UsrHandler) LoginUsrHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	sessionToken, err := c.loginUsrUseCase.Execute(ctx, *body)
+	sessionToken, err := c.loginUsr.Execute(r.Context(), *body)
 	if err != nil {
 		_ = response.WriteJSONError(w, err)
 		return

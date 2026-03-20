@@ -76,13 +76,14 @@ func main() {
 		}
 	})
 
-	// midlewares
+	// MIDLEWARES
 	authmiddleware := middleware.NewAuthMiddleware(jwtService)
 
-	// Usr Routes
+	// USR ROUTES
 	usrR := chi.NewRouter()
 	usrR.Get("/{id}", authmiddleware.IsAuthenticated(usrHandler.GetUsrHandler))
 	usrR.Post("/", authmiddleware.IsAuthenticated(usrHandler.CreateUsrHandler))
+	usrR.Post("/login", usrHandler.LoginUsrHandler)
 
 	r.Mount("/api/v1/usr", usrR)
 	logRoutes(r, l)
