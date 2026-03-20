@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"ownned/internal/infrastructure/transport/http/mapper"
+	"ownned/internal/infrastructure/transport/http/view"
 )
 
 // WriteJSON writes a json response expenting a struct type body
@@ -17,8 +17,9 @@ func WriteJSON(w http.ResponseWriter, code int, body any) error {
 
 // WriteJSONError writes a json error response after properly mapping the error
 func WriteJSONError(w http.ResponseWriter, err error) error {
-	httpErr := mapper.Err(err)
+	httpErr := view.Err(err)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpErr.Code)
-	return json.NewEncoder(w).Encode(err)
+	return json.NewEncoder(w).Encode(httpErr)
 }

@@ -1,10 +1,11 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
-	"strings"
 
 	"ownned/internal/application/auth"
+	"ownned/internal/domain"
 	"ownned/internal/infrastructure/sctx"
 	"ownned/internal/infrastructure/transport/http/response"
 	"ownned/pkg/apperror"
@@ -15,24 +16,25 @@ type AuthMiddleware struct {
 	jwtValidator auth.JWTManager
 }
 
-func (m *AuthMiddleware) getSessionFromBearer(h http.Header) (*auth.JWTAccessPayload, error) {
-	token := h.Get("Authorization")
-	if token == "" {
-		return nil, apperror.ErrUnauthenticated(
-			map[string]string{
-				"general": "session token not found",
-			})
+func (m *AuthMiddleware) getSessionFromBearer(r *http.Request) (*auth.JWTAccessPayload, error) {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			detail := make(map[string]string)
+			detail["reason"] = "session cookie not found"
+			return nil, apperror.ErrUnauthenticated(detail)
+		}
+
+		return nil, err
 	}
 
-	if !strings.HasPrefix(token, "Bearer ") {
-		return nil, apperror.ErrUnauthenticated(
-			map[string]string{
-				"general": "malformed session token",
-			})
+	if cookie.Value == "" {
+		detail := make(map[string]string)
+		detail["reason"] = "invalid session cookie"
+		return nil, apperror.ErrUnauthenticated(detail)
 	}
 
-	token = strings.TrimPrefix(token, "Bearer ")
-	session, err := m.jwtValidator.ValidateAccessToken(token)
+	session, err := m.jwtValidator.ValidateAccessToken(cookie.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +44,27 @@ func (m *AuthMiddleware) getSessionFromBearer(h http.Header) (*auth.JWTAccessPay
 
 func (m *AuthMiddleware) IsAuthenticated(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := m.getSessionFromBearer(r.Header)
+		session, err := m.getSessionFromBearer(r)
 		if err != nil {
 			_ = response.WriteJSONError(w, err)
+			return
+		}
+
+		ctx := sctx.SetSession(r.Context(), session)
+		next(w, r.WithContext(ctx))
+	})
+}
+
+func (m *AuthMiddleware) IsSuperUsr(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, err := m.getSessionFromBearer(r)
+		if err != nil {
+			_ = response.WriteJSONError(w, err)
+			return
+		}
+
+		if session.Role != domain.SuperUsrRole {
+			_ = response.WriteJSONError(w, apperror.ErrUnauthenticated(nil))
 			return
 		}
 

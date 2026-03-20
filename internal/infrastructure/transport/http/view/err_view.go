@@ -1,4 +1,4 @@
-package mapper
+package view
 
 import (
 	"errors"
@@ -6,79 +6,84 @@ import (
 	"log/slog"
 	"net/http"
 
-	"ownned/internal/infrastructure/transport/http/model"
-	"ownned/pkg/apperror"
-
 	"github.com/go-playground/validator/v10"
+
+	"ownned/pkg/apperror"
 )
 
-func ValidationError(err validator.ValidationErrors) *model.ErrView {
+type ErrView struct {
+	Code    int               `json:"code"`
+	Message string            `json:"message"`
+	Detail  map[string]string `json:"detail"`
+}
+
+func ValidationError(err validator.ValidationErrors) *ErrView {
 	detail := make(map[string]string)
 
 	for _, fe := range err {
 		detail[fe.Field()] = fmt.Sprintf("failed on %s, %s", fe.Tag(), fe.Error())
 	}
 
-	return &model.ErrView{
+	return &ErrView{
 		Code:    http.StatusUnprocessableEntity,
 		Message: "validation failed",
 		Detail:  detail,
 	}
 }
 
-func AppError(err *apperror.AppError) *model.ErrView {
+func AppError(err *apperror.AppError) *ErrView {
 	switch err {
 	case apperror.ErrNotFoundInstance:
-		return &model.ErrView{
+		return &ErrView{
 			Code:    http.StatusNotFound,
 			Message: "resource not found",
 			Detail:  err.Detail,
 		}
 
 	case apperror.ErrBadRequestInstance:
-		return &model.ErrView{
+		return &ErrView{
 			Code:    http.StatusBadRequest,
 			Message: "bad request",
 			Detail:  err.Detail,
 		}
 
 	case apperror.ErrConflictInstance:
-		return &model.ErrView{
+		return &ErrView{
 			Code:    http.StatusConflict,
 			Message: "conflict",
 			Detail:  err.Detail,
 		}
 
 	case apperror.ErrForbiddenInstance:
-		return &model.ErrView{
+		return &ErrView{
 			Code:    http.StatusForbidden,
 			Message: "forbidden",
 			Detail:  err.Detail,
 		}
 
 	case apperror.ErrUnauthenticatedInstance:
-		return &model.ErrView{
+		return &ErrView{
 			Code:    http.StatusUnauthorized,
 			Message: "unauthenticated",
 			Detail:  err.Detail,
 		}
 
 	case apperror.ErrRateLimitInstance:
-		return &model.ErrView{
+		return &ErrView{
 			Code:    http.StatusTooManyRequests,
 			Message: "too many requests",
 			Detail:  err.Detail,
 		}
 
 	case apperror.ErrInternalInstance:
-		return &model.ErrView{
+		return &ErrView{
 			Code:    http.StatusInternalServerError,
 			Message: "internal error",
 			Detail:  err.Detail,
 		}
 
 	default:
-		return &model.ErrView{
+		return &ErrView{
 			Code:    http.StatusInternalServerError,
 			Message: "unknown error",
 			Detail:  err.Detail,
@@ -88,7 +93,7 @@ func AppError(err *apperror.AppError) *model.ErrView {
 
 var errLogger = slog.With("error handler")
 
-func Err(err error) *model.ErrView {
+func Err(err error) *ErrView {
 	if err == nil {
 		return nil
 	}
@@ -105,7 +110,7 @@ func Err(err error) *model.ErrView {
 
 	errLogger.Error("unexpected error happened", "error", err)
 
-	return &model.ErrView{
+	return &ErrView{
 		Code:    http.StatusInternalServerError,
 		Message: "unexpected error",
 	}

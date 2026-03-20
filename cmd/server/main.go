@@ -21,23 +21,6 @@ import (
 // start point baby
 func main() {
 	cfg := config.LoadEnvConfig()
-	// SERVICES
-	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-
-	jwtService := serv.NewJWTManagerST(
-		[]byte(cfg.SessionSecret),
-		time.Hour,
-		"ownned",
-	)
-
-	pwdHasher := serv.NewPwdHasherArgon2(
-		cfg.PwdTime,
-		cfg.PwdMemKiB,
-		cfg.PwdThreads,
-		cfg.PwdHashLen,
-		cfg.PwdSaltLen,
-	)
-
 	// DB
 	db, err := pg.NewDB(
 		cfg.PgDB,
@@ -55,37 +38,58 @@ func main() {
 		panic(err)
 	}
 
-	usrRepository := pg.NewUsrRepository(db)
-	usrPwdRepository := pg.NewUsrPwdRepository(db)
-	// nodeRepository := pg.NewNodeRepository(db)
-	// groupUsrRepository := pg.NewGroupUsrRepository(db)
-	// var docRepository domain.DocRepository = repo.NewDocRepository()
-	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
+	// SERVICES
+	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	createUsr := usecase.NewCreateUsrUseCase(usrRepository, unitOfWorkFactory, pwdHasher, l)
-	getUsr := usecase.NewGetUsrUseCase(usrRepository)
-	loginUsr := usecase.NewLoginUsrUseCase(usrRepository, usrPwdRepository, pwdHasher, jwtService)
-	usrHandler := handler.NewUsrHandler(loginUsr, createUsr, getUsr, cfg.Mode != "local")
+	jwtService := serv.NewJWTManagerST(
+		[]byte(cfg.SessionSecret),
+		time.Hour,
+		"ownned",
+	)
 
-	r := chi.NewRouter()
-
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("Hello Ownned"))
-		if err != nil {
-			l.Warn("some error happend", "err", err)
-		}
-	})
+	pwdHasher := serv.NewPwdHasherArgon2(
+		cfg.PwdTime,
+		cfg.PwdMemKiB,
+		cfg.PwdThreads,
+		cfg.PwdHashLen,
+		cfg.PwdSaltLen,
+	)
 
 	// MIDLEWARES
 	authmiddleware := middleware.NewAuthMiddleware(jwtService)
 
+	usrRepository := pg.NewUsrRepository(db)
+	usrPwdRepository := pg.NewUsrPwdRepository(db)
+	nodeRepository := pg.NewNodeRepository(db)
+	groupRepository := pg.NewGroupRepository(db)
+	// groupUsrRepository := pg.NewGroupUsrRepository(db)
+	// var docRepository domain.DocRepository = repo.NewDocRepository()
+	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
+
+	// USERS
+	createUsr := usecase.NewCreateUsrUseCase(usrRepository, unitOfWorkFactory, pwdHasher, l)
+	getUsr := usecase.NewGetUsrUseCase(usrRepository)
+	loginUsr := usecase.NewLoginUsrUseCase(usrRepository, usrPwdRepository, pwdHasher, jwtService)
+	usrHandler := handler.NewUsrHandler(loginUsr, createUsr, getUsr, handler.UsrHandlerConfig{
+		Secure:   cfg.Mode != "local",
+		SameSite: http.SameSiteLaxMode,
+	})
 	// USR ROUTES
 	usrR := chi.NewRouter()
 	usrR.Get("/{id}", authmiddleware.IsAuthenticated(usrHandler.GetUsrHandler))
 	usrR.Post("/", authmiddleware.IsAuthenticated(usrHandler.CreateUsrHandler))
 	usrR.Post("/login", usrHandler.LoginUsrHandler)
 
-	r.Mount("/api/v1/usr", usrR)
+	// NODES
+	getRoot := usecase.NewGetRootNodesUseCase(nodeRepository, usrRepository, groupRepository, l)
+	nodeHandler := handler.NewNodeHandler(getRoot)
+	nodeR := chi.NewRouter()
+	nodeR.Get("/", authmiddleware.IsAuthenticated(nodeHandler.GetRootHandler))
+
+	r := chi.NewRouter()
+
+	r.Mount("/api/v1/usrs", usrR)
+	r.Mount("/api/v1/nodes", nodeR)
 	logRoutes(r, l)
 
 	l.Info("server starting at:", "port", cfg.Port)

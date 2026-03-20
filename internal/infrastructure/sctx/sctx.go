@@ -4,7 +4,7 @@ package sctx
 import (
 	"context"
 
-	authapp "ownned/internal/application/auth"
+	"ownned/internal/application/auth"
 	"ownned/pkg/apperror"
 )
 
@@ -15,18 +15,18 @@ type usrSessionKeyType struct{}
 var usrSessionKey = usrSessionKeyType{}
 
 // GetSession returns the session from the context
-func GetSession(ctx context.Context) (*authapp.JWTAccessPayload, error) {
-	session, ok := ctx.Value(usrSessionKey).(authapp.JWTAccessPayload)
+func GetSession(ctx context.Context) (*auth.JWTAccessPayload, error) {
+	session, ok := ctx.Value(usrSessionKey).(*auth.JWTAccessPayload)
 	if !ok {
-		return nil, apperror.ErrInternal(map[string]string{
-			"error": "invalid casting of expected type *Session",
-		})
+		detail := make(map[string]string)
+		detail["reason"] = "invalid casting of expected type *Session"
+		return nil, apperror.ErrInternal(detail)
 	}
 
-	return &session, nil
+	return session, nil
 }
 
 // SetSession sets the session in the context
-func SetSession(ctx context.Context, session *authapp.JWTAccessPayload) context.Context {
+func SetSession(ctx context.Context, session *auth.JWTAccessPayload) context.Context {
 	return context.WithValue(ctx, usrSessionKey, session)
 }

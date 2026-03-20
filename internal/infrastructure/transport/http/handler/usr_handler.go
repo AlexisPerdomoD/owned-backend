@@ -8,17 +8,22 @@ import (
 
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/transport/http/decoder"
-	"ownned/internal/infrastructure/transport/http/mapper"
 	"ownned/internal/infrastructure/transport/http/response"
+	"ownned/internal/infrastructure/transport/http/view"
 	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
 )
+
+type UsrHandlerConfig struct {
+	Secure   bool
+	SameSite http.SameSite
+}
 
 type UsrHandler struct {
 	loginUsr  *usecase.LoginUsrUseCase
 	createUsr *usecase.CreateUsrUseCase
 	getUsr    *usecase.GetUsrUseCase
-	secure    bool
+	cfg       UsrHandlerConfig
 }
 
 func (c *UsrHandler) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +41,7 @@ func (c *UsrHandler) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = response.WriteJSON(w, http.StatusOK, mapper.UsrViewFromDomain(usr))
+	_ = response.WriteJSON(w, http.StatusOK, view.UsrViewFromDomain(usr))
 }
 
 func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +60,7 @@ func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = response.WriteJSON(w, http.StatusCreated, mapper.UsrViewFromDomain(usr))
+	_ = response.WriteJSON(w, http.StatusCreated, view.UsrViewFromDomain(usr))
 }
 
 func (c *UsrHandler) LoginUsrHandler(w http.ResponseWriter, r *http.Request) {
@@ -77,8 +82,8 @@ func (c *UsrHandler) LoginUsrHandler(w http.ResponseWriter, r *http.Request) {
 		Name:     "session",
 		Value:    sessionToken,
 		HttpOnly: true,
-		Secure:   c.secure,
-		SameSite: http.SameSiteDefaultMode,
+		Secure:   c.cfg.Secure,
+		SameSite: c.cfg.SameSite,
 		Path:     "/",
 		MaxAge:   3600,
 	})
@@ -92,10 +97,10 @@ func NewUsrHandler(
 	lu *usecase.LoginUsrUseCase,
 	cu *usecase.CreateUsrUseCase,
 	gu *usecase.GetUsrUseCase,
-	secure bool,
+	cfg UsrHandlerConfig,
 ) *UsrHandler {
 	helper.NotNilOrPanic(lu, "LoginUsrUseCase")
 	helper.NotNilOrPanic(cu, "CreateUsrUseCase")
 	helper.NotNilOrPanic(gu, "GetUsrUseCase")
-	return &UsrHandler{lu, cu, gu, secure}
+	return &UsrHandler{lu, cu, gu, cfg}
 }

@@ -1,8 +1,9 @@
-package model
+package view
 
 import (
-	"ownned/internal/domain"
 	"time"
+
+	"ownned/internal/domain"
 )
 
 type UsrView struct {
@@ -13,4 +14,18 @@ type UsrView struct {
 	Lastname  string         `json:"lastname"`
 	Username  string         `json:"username"`
 	CreatedAt time.Time      `json:"createdAt"`
+}
+
+func UsrViewFromDomain(usr *domain.Usr) UsrView {
+	if usr == nil {
+		return UsrView{}
+	}
+	return UsrView{
+		ID:        usr.ID.String(),
+		Role:      usr.Role,
+		RoleTitle: string(usr.Role),
+		Firstname: usr.Firstname,
+		Lastname:  usr.Lastname,
+		CreatedAt: usr.CreatedAt,
+	}
 }
