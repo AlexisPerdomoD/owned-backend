@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
-
-	"github.com/google/uuid"
+	"ownned/pkg/helper"
 )
 
 type CreateFolderUseCase struct {
@@ -57,18 +57,15 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		return nil, apperror.ErrBadRequest(detail)
 	}
 
-	if usr.Role != domain.SuperUsrRole {
-		access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, parent.ID)
-		if err != nil {
-			return nil, err
-		}
+	accss, err := resolveNodeAccess(ctx, uc.groupUsrRepository, usr, parent)
+	if err != nil {
+		return nil, err
+	}
 
-		if access == nil || *access != domain.GroupWriteAccess {
-			detail := make(map[string]string)
-			detail["reason"] = fmt.Sprintf("Cannot create nodes on this folder=%s with ID=%s", parent.Name, parent.ID)
-			return nil, apperror.ErrForbidden(detail)
-		}
-
+	if accss != domain.GroupWriteAccess {
+		detail := make(map[string]string)
+		detail["reason"] = fmt.Sprintf("Cannot create nodes on this folder=%s with ID=%s", parent.Name, parent.ID)
+		return nil, apperror.ErrForbidden(detail)
 	}
 
 	folderID, err := uuid.NewV7()
@@ -96,9 +93,8 @@ func NewCreateFolderUseCase(
 	ur domain.UsrRepository,
 	gur domain.GroupUsrRepository,
 ) *CreateFolderUseCase {
-	if nr == nil || ur == nil || gur == nil {
-		panic("NewCreateFolderUseCase receive nil dependencies")
-	}
-
+	helper.NotNilOrPanic(nr, "NodeRepository")
+	helper.NotNilOrPanic(ur, "UsrRepository")
+	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	return &CreateFolderUseCase{nr, ur, gur}
 }

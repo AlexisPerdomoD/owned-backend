@@ -78,33 +78,33 @@ func (r *groupUsrRepository) GetGroupAccess(
 	ctx context.Context,
 	usrID domain.UsrID,
 	groupID domain.GroupID,
-) (*domain.GroupUsrAccess, error) {
+) (domain.GroupUsrAccess, error) {
 	q := fmt.Sprintf("%s\nWHERE gu.usr_id=$1 AND gu.group_id=$2", getGroupAccessQuery)
 	var access domain.GroupUsrAccess
 	err := r.db.QueryRowxContext(ctx, q, usrID, groupID).Scan(&access)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return domain.GroupNoneAccess, nil
 		}
 
-		return nil, err
+		return domain.GroupNoneAccess, err
 	}
 
-	return &access, nil
+	return access, nil
 }
 
-func (r *groupUsrRepository) GetNodeAccess(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) (*domain.GroupUsrAccess, error) {
+func (r *groupUsrRepository) GetNodeAccess(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) (domain.GroupUsrAccess, error) {
 	var access domain.GroupUsrAccess
 	err := r.db.QueryRowxContext(ctx, getNodeAccessQuery, usrID, nodeID).Scan(&access)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return domain.GroupNoneAccess, nil
 		}
 
-		return nil, err
+		return domain.GroupNoneAccess, err
 	}
 
-	return &access, nil
+	return access, nil
 }
 
 func (r *groupUsrRepository) GetByUsr(ctx context.Context, usrID domain.UsrID) ([]domain.GroupUsr, error) {

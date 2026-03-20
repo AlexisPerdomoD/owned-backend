@@ -7,9 +7,25 @@ type FileNodeDTO struct {
 	Doc domain.Doc
 }
 
+func (dto *FileNodeDTO) IsFile() (isFile bool, doc *domain.Doc) {
+	return dto.Type == domain.FileNodeType, &dto.Doc
+}
+
+func (dto *FileNodeDTO) IsFolder() (isFolder bool, chldr []domain.Node) {
+	return false, nil
+}
+
 type FolderNodeDTO struct {
 	domain.Node
 	Children []domain.Node
+}
+
+func (dto *FolderNodeDTO) IsFile() (isFile bool, doc *domain.Doc) {
+	return false, nil
+}
+
+func (dto *FolderNodeDTO) IsFolder() (isFolder bool, chldr []domain.Node) {
+	return dto.Type == domain.FolderNodeType, dto.Children
 }
 
 type CreateFolderDTO struct {

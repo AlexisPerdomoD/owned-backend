@@ -6,6 +6,7 @@ import (
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+	"ownned/pkg/helper"
 )
 
 type GetGroupUseCase struct {
@@ -49,8 +50,8 @@ func NewGetGroupUseCase(
 	ur domain.UsrRepository,
 	nr domain.NodeRepository,
 ) *GetGroupUseCase {
-	if gr == nil || ur == nil || nr == nil {
-		panic("NewGetGroupUseCase received a nil reference as dependency")
-	}
+	helper.NotNilOrPanic(gr, "GroupRepository")
+	helper.NotNilOrPanic(ur, "UsrRepository")
+	helper.NotNilOrPanic(nr, "NodeRepository")
 	return &GetGroupUseCase{gr, ur, nr}
 }

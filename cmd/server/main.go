@@ -82,6 +82,8 @@ func main() {
 		cfg.PwdSaltLen,
 	)
 
+	storage := serv.NewStorageManagerFS(cfg.LocalStorageDir)
+
 	// MIDLEWARES
 	authmiddleware := middleware.NewAuthMiddleware(jwtService)
 
@@ -90,7 +92,7 @@ func main() {
 	nodeRepository := pg.NewNodeRepository(db)
 	groupRepository := pg.NewGroupRepository(db)
 	groupUsrRepository := pg.NewGroupUsrRepository(db)
-	// var docRepository domain.DocRepository = repo.NewDocRepository()
+	docRepository := pg.NewDocRepository(db)
 	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
 	// USERS
@@ -110,15 +112,26 @@ func main() {
 	// NODES
 	getRoot := usecase.NewGetRootNodesUseCase(nodeRepository, usrRepository, groupRepository, l)
 	createFolder := usecase.NewCreateFolderUseCase(nodeRepository, usrRepository, groupUsrRepository)
+	getNode := usecase.NewGetNodeByIDUseCase(usrRepository, nodeRepository, docRepository, groupUsrRepository, l)
 	// NODES ROUTES
-	nodeHandler := handler.NewNodeHandler(getRoot, createFolder)
+	nodeHandler := handler.NewNodeHandler(getRoot, createFolder, getNode)
 	nodeR := chi.NewRouter()
 	nodeR.Get("/", authmiddleware.IsAuthenticated(nodeHandler.GetRootHandler))
 	nodeR.Post("/", authmiddleware.IsAuthenticated(nodeHandler.CreateFolderHandler))
+	nodeR.Get("/{nodeID}", authmiddleware.IsAuthenticated(nodeHandler.GetNodeHandler))
+
+	// DOCS
+	createDoc := usecase.NewCreateDocUseCase(usrRepository, docRepository, nodeRepository, groupUsrRepository, unitOfWorkFactory, storage, l)
+	// DOCS ROUTES
+	docHandler := handler.NewDocHandler(createDoc)
+	docR := chi.NewRouter()
+	docR.Post("/", authmiddleware.IsAuthenticated(docHandler.CreateDocHandler))
+
 	// SERVER ROUTES
 	r := chi.NewRouter()
 	r.Mount("/api/v1/usrs", usrR)
 	r.Mount("/api/v1/nodes", nodeR)
+	r.Mount("/api/v1/docs", docR)
 	logRoutes(r, l)
 
 	l.Info("server starting at:", "port", cfg.Port)

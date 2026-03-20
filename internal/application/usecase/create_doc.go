@@ -4,12 +4,13 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/google/uuid"
+
 	"ownned/internal/application/dto"
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
-
-	"github.com/google/uuid"
+	"ownned/pkg/helper"
 )
 
 type CreateDocUseCaseResponse struct {
@@ -33,8 +34,14 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, err
 	}
 
-	if usr == nil || usr.Role == domain.LimitedUsrRole {
-		return nil, apperror.ErrForbidden(nil)
+	if usr == nil {
+		return nil, apperror.ErrUnauthenticated(nil)
+	}
+
+	if usr.Role == domain.LimitedUsrRole {
+		detail := make(map[string]string)
+		detail["reason"] = "user does not have permission to create documents"
+		return nil, apperror.ErrForbidden(detail)
 	}
 
 	folder, err := uc.nodeRepository.GetByID(ctx, arg.ParentID)
@@ -43,20 +50,26 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 	}
 
 	if folder == nil {
-		return nil, apperror.ErrNotFound(map[string]string{"error": "Folder was not found"})
+		detail := make(map[string]string)
+		detail["reason"] = "Folder was not found."
+		return nil, apperror.ErrNotFound(detail)
 	}
 
 	if folder.Type != domain.FolderNodeType {
-		return nil, apperror.ErrBadRequest(map[string]string{"error": "parentID does not point to a folder"})
+		detail := make(map[string]string)
+		detail["reason"] = "ParentID does not point to a folder."
+		return nil, apperror.ErrBadRequest(detail)
 	}
 
-	access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, folder.ID)
+	accss, err := resolveNodeAccess(ctx, uc.groupUsrRepository, usr, folder)
 	if err != nil {
 		return nil, err
 	}
 
-	if access == nil || *access != domain.GroupWriteAccess {
-		return nil, apperror.ErrForbidden(map[string]string{"error": "Usr does not have enought access"})
+	if accss != domain.GroupWriteAccess {
+		detail := make(map[string]string)
+		detail["reason"] = "User does not have access to create documents on this folder."
+		return nil, apperror.ErrForbidden(detail)
 	}
 
 	nodeID, err := uuid.NewV7()
@@ -139,10 +152,12 @@ func NewCreateDocUseCase(
 	storage storage.StorageManager,
 	mainLogger *slog.Logger,
 ) *CreateDocUseCase {
-	if ur == nil || dr == nil || nr == nil || uowf == nil || storage == nil {
-		panic("missing dependencies for NewCreateDocUseCase")
-	}
-
+	helper.NotNilOrPanic(ur, "UsrRepository")
+	helper.NotNilOrPanic(dr, "DocRepository")
+	helper.NotNilOrPanic(nr, "NodeRepository")
+	helper.NotNilOrPanic(uowf, "UnitOfWorkFactory")
+	helper.NotNilOrPanic(storage, "StorageManager")
+	helper.NotNilOrPanic(mainLogger, "mainLogger")
 	logger := mainLogger.With("usecase", "CreateDocUseCase")
 	return &CreateDocUseCase{ur, dr, nr, gur, uowf, storage, logger}
 }

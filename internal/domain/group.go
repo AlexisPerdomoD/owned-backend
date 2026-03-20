@@ -22,6 +22,7 @@ type Group struct {
 type GroupUsrAccess string
 
 const (
+	GroupNoneAccess     GroupUsrAccess = "none_access"
 	GroupReadOnlyAccess GroupUsrAccess = "read_only_access"
 	GroupWriteAccess    GroupUsrAccess = "write_access"
 )
@@ -71,9 +72,9 @@ type GroupRepository interface {
 // GroupUsrRepository is the interface to interact with usr - group relations
 type GroupUsrRepository interface {
 	// GetGroupAccess returns the access of a user to a Group based on usrs group access, if no access is found it returns nil
-	GetGroupAccess(ctx context.Context, usrID UsrID, groupID GroupID) (*GroupUsrAccess, error)
+	GetGroupAccess(ctx context.Context, usrID UsrID, groupID GroupID) (GroupUsrAccess, error)
 	// GetNodeAccess returns the access of a user to a Node based on usrs group access, if no access is found it returns nil
-	GetNodeAccess(ctx context.Context, usrID UsrID, nodeID NodeID) (*GroupUsrAccess, error)
+	GetNodeAccess(ctx context.Context, usrID UsrID, nodeID NodeID) (GroupUsrAccess, error)
 	// GetByUsr returns the access of a user to nodes
 	GetByUsr(ctx context.Context, usrID UsrID) ([]GroupUsr, error)
 	// Upsert access to a groups for a users

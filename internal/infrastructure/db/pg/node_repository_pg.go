@@ -103,7 +103,18 @@ func (r *nodeRepository) GetByID(ctx context.Context, id domain.NodeID) (*domain
 }
 
 func (r *nodeRepository) GetChildren(ctx context.Context, folderID domain.NodePath) ([]domain.Node, error) {
-	return nil, apperror.ErrNotImplemented(nil)
+	q := fmt.Sprintf("%s\nWHERE nlevel(n.path)=nlevel($1::ltree)+1", getNodeQuery)
+	rows, err := r.db.QueryxContext(ctx, q, folderID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer safeClose(ctx, rows)
+	nodes, err := readSlice[domain.Node, nodeRow](rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodes, nil
 }
 
 func (r *nodeRepository) GetRoot(ctx context.Context) ([]domain.Node, error) {

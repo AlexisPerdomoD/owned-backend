@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
 	"time"
@@ -18,7 +19,7 @@ type DeleteNodeUseCase struct {
 	docRepository      domain.DocRepository
 	groupUsrRepository domain.GroupUsrRepository
 	storage            storage.StorageManager
-	logger             *slog.Logger
+	log                *slog.Logger
 }
 
 func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) error {
@@ -44,20 +45,16 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 		return apperror.ErrNotFound(map[string]string{"error": "node was not found by id=" + nodeID.String()})
 	}
 
-	if usr.Role != domain.SuperUsrRole {
-		access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, node.ID)
-		if err != nil {
-			return err
-		}
+	accss, err := resolveNodeAccess(ctx, uc.groupUsrRepository, usr, node)
+	if err != nil {
+		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", nodeID, "error", err)
+		return err
+	}
 
-		if access == nil || *access != domain.GroupWriteAccess {
-			return apperror.ErrForbidden(
-				map[string]string{
-					"error":  "Not enought privileges to delete node",
-					"nodeID": "usr does not have permission to do this action over this resource nodeID=" + node.ID.String(),
-				},
-			)
-		}
+	if accss != domain.GroupWriteAccess {
+		detail := make(map[string]string)
+		detail["reason"] = fmt.Sprintf("User does not have access to specified node ID=%s", nodeID.String())
+		return apperror.ErrForbidden(detail)
 	}
 
 	docs, err := uc.docRepository.GetAllFromPath(ctx, node.Path)
@@ -79,7 +76,7 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 }
 
 func (uc *DeleteNodeUseCase) deleteDocsAsync(docs []domain.Doc) {
-	logger := uc.logger.With("scope", "deleteDocsAsync")
+	logger := uc.log.With("scope", "deleteDocsAsync")
 	storage := uc.storage
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()

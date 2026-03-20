@@ -2,11 +2,13 @@ package usecase
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+	"ownned/pkg/helper"
 )
 
 type GetNodeUseCase struct {
@@ -14,15 +16,13 @@ type GetNodeUseCase struct {
 	nr  domain.NodeRepository
 	dr  domain.DocRepository
 	gur domain.GroupUsrRepository
+	log *slog.Logger
 }
 
 func (uc *GetNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) (domain.NodeLike, error) {
-	nodeRepository := uc.nr
-	usrRepository := uc.ur
-	docRepository := uc.dr
-
-	usr, err := usrRepository.GetByID(ctx, usrID)
+	usr, err := uc.ur.GetByID(ctx, usrID)
 	if err != nil {
+		uc.log.WarnContext(ctx, "failed to get user by ID", "usrID", usrID, "error", err)
 		return nil, err
 	}
 
@@ -30,45 +30,53 @@ func (uc *GetNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeI
 		return nil, apperror.ErrForbidden(nil)
 	}
 
-	node, err := nodeRepository.GetByID(ctx, nodeID)
+	n, err := uc.nr.GetByID(ctx, nodeID)
 	if err != nil {
+		uc.log.WarnContext(ctx, "failed to get node by ID", "nodeID", nodeID, "error", err)
 		return nil, err
 	}
 
-	if node == nil {
-		return nil, apperror.ErrNotFound(nil)
+	if n == nil {
+		detail := make(map[string]string)
+		detail["reason"] = fmt.Sprintf("Node with ID=%s was not found", nodeID.String())
+		return nil, apperror.ErrNotFound(detail)
 	}
 
-	if usr.Role != domain.SuperUsrRole {
-		access, err := uc.gur.GetNodeAccess(ctx, usr.ID, node.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		if access == nil {
-			return nil, apperror.ErrForbidden(nil)
-		}
+	accss, err := resolveNodeAccess(ctx, uc.gur, usr, n)
+	if err != nil {
+		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", nodeID, "error", err)
+		return nil, err
 	}
 
-	if node.Type == domain.FileNodeType {
-		doc, err := docRepository.GetByNodeID(ctx, node.ID)
+	if accss == domain.GroupNoneAccess {
+		detail := make(map[string]string)
+		detail["reason"] = fmt.Sprintf("User does not have access to specified node ID=%s", nodeID.String())
+		return nil, apperror.ErrForbidden(detail)
+	}
+
+	if n.Type == domain.FileNodeType {
+		doc, err := uc.dr.GetByNodeID(ctx, n.ID)
 		if err != nil {
+			uc.log.WarnContext(ctx, "failed to get doc by node ID", "nodeID", nodeID, "error", err)
 			return nil, err
 		}
 
 		if doc == nil {
+			detail := make(map[string]string)
+			detail["reason"] = fmt.Sprintf("Doc entity associated with node at path %s was not found", n.Path)
 			return nil, apperror.ErrNotFound(map[string]string{"error": "doc entity was not found"})
 		}
 
-		return &dto.FileNodeDTO{Node: *node, Doc: *doc}, nil
+		return &dto.FileNodeDTO{Node: *n, Doc: *doc}, nil
 	}
 
-	children, err := nodeRepository.GetChildren(ctx, node.Path)
+	chld, err := uc.nr.GetChildren(ctx, n.Path)
 	if err != nil {
+		uc.log.WarnContext(ctx, "failed to get children", "nodeID", nodeID, "error", err)
 		return nil, err
 	}
 
-	return &dto.FolderNodeDTO{Node: *node, Children: children}, nil
+	return &dto.FolderNodeDTO{Node: *n, Children: chld}, nil
 }
 
 func NewGetNodeByIDUseCase(
@@ -76,10 +84,13 @@ func NewGetNodeByIDUseCase(
 	nr domain.NodeRepository,
 	dr domain.DocRepository,
 	gur domain.GroupUsrRepository,
+	mainLogger *slog.Logger,
 ) *GetNodeUseCase {
-	if ur == nil || nr == nil || dr == nil {
-		log.Panicln("NewGetNodeByIDUseCase received a nil reference as dependency")
-	}
-
-	return &GetNodeUseCase{ur, nr, dr, gur}
+	helper.NotNilOrPanic(ur, "UsrRepository")
+	helper.NotNilOrPanic(nr, "NodeRepository")
+	helper.NotNilOrPanic(dr, "DocRepository")
+	helper.NotNilOrPanic(gur, "GroupUsrRepository")
+	helper.NotNilOrPanic(mainLogger, "mainLogger")
+	log := mainLogger.With("usecase", "GetNodeUseCase")
+	return &GetNodeUseCase{ur, nr, dr, gur, log}
 }

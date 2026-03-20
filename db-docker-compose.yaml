@@ -9,7 +9,7 @@ services:
     ports:
       - "5501:5432"
     volumes:
-      - /var/lib/postgresql/data
+      - /var/lib/postgresql/ownned_data
     networks:
       - ownned_dev
 networks:

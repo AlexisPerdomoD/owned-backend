@@ -8,6 +8,7 @@ import (
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+	"ownned/pkg/helper"
 )
 
 type LoginUsrUseCase struct {
@@ -72,5 +73,9 @@ func NewLoginUsrUseCase(
 	ph auth.PwdHasher,
 	jm auth.JWTManager,
 ) *LoginUsrUseCase {
+	helper.NotNilOrPanic(ur, "UsrRepository")
+	helper.NotNilOrPanic(upr, "UsrPwdRepository")
+	helper.NotNilOrPanic(ph, "PwdHasher")
+	helper.NotNilOrPanic(jm, "JWTManager")
 	return &LoginUsrUseCase{ur, upr, ph, jm}
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -65,6 +66,19 @@ func requireEnvInt(key string) int {
 	return n
 }
 
+func getLocalStorageDir() string {
+	if v := os.Getenv("LOCAL_STORAGE_DIR"); v != "" {
+		return v
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic("cannot determine user home directory")
+	}
+
+	return filepath.Join(home, ".owned", "storage")
+}
+
 // EnvConfig is the struct for environment variables.
 type EnvConfig struct {
 	// APPLICATION
@@ -78,6 +92,9 @@ type EnvConfig struct {
 	PwdMemKiB     uint32
 	PwdTime       uint32
 	PwdThreads    uint8
+
+	// STORAGE
+	LocalStorageDir string
 
 	// DATABASE
 	PgHost         string
@@ -96,14 +113,18 @@ type EnvConfig struct {
 
 func LoadEnvConfig() *EnvConfig {
 	return &EnvConfig{
-		Mode:           getenv("MODE", "local"),
-		Port:           getenvInt("PORT", 3000),
-		SessionSecret:  requireEnv("SESSION_SECRET"),
-		PwdSaltLen:     getenvUint32("PWD_SALT_LEN", 16),
-		PwdHashLen:     getenvUint32("PWD_HASH_LEN", 32),
-		PwdMemKiB:      getenvUint32("PWD_MEM_KIB", 64*1024),
-		PwdTime:        getenvUint32("PWD_TIME", 3),
-		PwdThreads:     getenvUint8("PWD_THREADS", 4),
+		Mode: getenv("MODE", "local"),
+		Port: getenvInt("PORT", 3000),
+
+		LocalStorageDir: getLocalStorageDir(),
+
+		SessionSecret: requireEnv("SESSION_SECRET"),
+		PwdSaltLen:    getenvUint32("PWD_SALT_LEN", 16),
+		PwdHashLen:    getenvUint32("PWD_HASH_LEN", 32),
+		PwdMemKiB:     getenvUint32("PWD_MEM_KIB", 64*1024),
+		PwdTime:       getenvUint32("PWD_TIME", 3),
+		PwdThreads:    getenvUint8("PWD_THREADS", 4),
+
 		PgHost:         requireEnv("PG_HOST"),
 		PgPort:         requireEnvInt("PG_PORT"),
 		PgUser:         requireEnv("PG_USER"),

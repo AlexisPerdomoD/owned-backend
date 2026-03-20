@@ -33,9 +33,9 @@ const (
 type NodeLike interface {
 	GetNode() *Node
 
-	IsFile() bool
+	IsFile() (isFile bool, doc *Doc)
 
-	IsFolder() bool
+	IsFolder() (isFolder bool, chldr []Node)
 }
 
 type NodeID = uuid.UUID
@@ -52,14 +52,6 @@ type Node struct {
 
 func (n *Node) GetNode() *Node {
 	return n
-}
-
-func (n *Node) IsFile() bool {
-	return n.Type == FileNodeType
-}
-
-func (n *Node) IsFolder() bool {
-	return n.Type == FolderNodeType
 }
 
 type NodeGroupAttach struct {

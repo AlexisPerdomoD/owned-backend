@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"runtime/debug"
 
@@ -14,6 +13,7 @@ import (
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 	"ownned/pkg/col"
+	"ownned/pkg/helper"
 )
 
 type CreateUsrUseCase struct {
@@ -38,7 +38,7 @@ func (uc *CreateUsrUseCase) Execute(
 
 	if usr != nil {
 		detail := make(map[string]string)
-		detail["username"] = fmt.Sprintf("username %s already in use", args.Username)
+		detail["reason"] = fmt.Sprintf("username '%s' already in use for another user", args.Username)
 		return nil, apperror.ErrConflic(detail)
 	}
 
@@ -73,7 +73,7 @@ func (uc *CreateUsrUseCase) Execute(
 
 	usrNodeRoot := &domain.Node{
 		ID:          usrNodeRootID,
-		Name:        fmt.Sprintf("root_%s", usr.ID),
+		Name:        fmt.Sprintf("%s_usr_root_folder", usr.ID),
 		Description: "Auto generated root node for particular user.",
 		Type:        domain.FolderNodeType,
 		Path:        domain.NodePathUsrRoot.NewChildPath(usr.ID),
@@ -81,7 +81,7 @@ func (uc *CreateUsrUseCase) Execute(
 
 	usrRootGroup := &domain.Group{
 		ID:          usrGroupID,
-		Name:        fmt.Sprintf("group_%s", usr.ID),
+		Name:        fmt.Sprintf("%s_group", usr.ID),
 		Description: "Auto generated group for particular user.",
 	}
 
@@ -154,10 +154,10 @@ func NewCreateUsrUseCase(
 	pwdHasher auth.PwdHasher,
 	mainLogger *slog.Logger,
 ) *CreateUsrUseCase {
-	if usrRepository == nil || unitOfWorkFactory == nil || pwdHasher == nil || mainLogger == nil {
-		log.Panicln("NewCreateUsrUseCase received a nil reference as dependency")
-	}
-
+	helper.NotNilOrPanic(usrRepository, "UsrRepository")
+	helper.NotNilOrPanic(unitOfWorkFactory, "UnitOfWorkFactory")
+	helper.NotNilOrPanic(pwdHasher, "PwdHasher")
+	helper.NotNilOrPanic(mainLogger, "mainLogger")
 	logger := mainLogger.With("usecase", "CreateUsrUseCase")
 	return &CreateUsrUseCase{usrRepository, unitOfWorkFactory, pwdHasher, logger}
 }

@@ -2,10 +2,13 @@ package usecase
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+	"ownned/pkg/helper"
 )
 
 type DeleteDoceUseCase struct {
@@ -14,6 +17,7 @@ type DeleteDoceUseCase struct {
 	nodeRepository     domain.NodeRepository
 	usrRepository      domain.UsrRepository
 	groupUsrRepository domain.GroupUsrRepository
+	log                *slog.Logger
 }
 
 func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, docID domain.DocID) (*domain.Doc, error) {
@@ -23,7 +27,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 	}
 
 	if usr == nil {
-		return nil, apperror.ErrNotFound(map[string]string{"error": "usr entity was not found"})
+		return nil, apperror.ErrUnauthenticated(nil)
 	}
 
 	doc, err := uc.docRepository.GetByID(ctx, docID)
@@ -32,22 +36,37 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 	}
 
 	if doc == nil {
-		return nil, apperror.ErrNotFound(map[string]string{"error": "doc entity was not found"})
+		detail := make(map[string]string)
+		detail["reason"] = fmt.Sprintf("Doc entity with ID=%s was not found", docID.String())
+		return nil, apperror.ErrNotFound(detail)
 	}
 
-	if usr.Role != domain.SuperUsrRole {
-		access, err := uc.groupUsrRepository.GetNodeAccess(ctx, usr.ID, doc.NodeID)
-		if err != nil {
-			return nil, err
-		}
+	node, err := uc.nodeRepository.GetByID(ctx, doc.NodeID)
+	if err != nil {
+		return nil, err
+	}
 
-		if access == nil || *access != domain.GroupWriteAccess {
-			return nil, apperror.ErrForbidden(map[string]string{"error": "user does not have access to remove this doc"})
-		}
+	if node == nil {
+		detail := make(map[string]string)
+		detail["reason"] = fmt.Sprintf("Internal state error, node with ID=%s was not found", doc.NodeID.String())
+		err := apperror.ErrInternal(detail)
+		uc.log.ErrorContext(ctx, "failed to get node by ID", "nodeID", doc.NodeID, "err", err)
+		return nil, err
+	}
 
+	accss, err := resolveNodeAccess(ctx, uc.groupUsrRepository, usr, node)
+	if err != nil {
+		return nil, err
+	}
+
+	if accss != domain.GroupWriteAccess {
+		detail := make(map[string]string)
+		detail["reason"] = "user does not have access to remove this doc"
+		return nil, apperror.ErrForbidden(detail)
 	}
 
 	if err := uc.storage.Delete(ctx, doc.ID.String()); err != nil {
+		uc.log.WarnContext(ctx, "failed to delete doc from storage", "docID", docID, "err", err)
 		return nil, err
 	}
 
@@ -64,10 +83,14 @@ func NewDeleteDocUseCase(
 	nr domain.NodeRepository,
 	ur domain.UsrRepository,
 	gur domain.GroupUsrRepository,
+	mainLogger *slog.Logger,
 ) *DeleteDoceUseCase {
-	if s == nil || gur == nil || dr == nil || nr == nil || ur == nil {
-		panic("NewDeleteDocUseCase has been provided with nil dependencies")
-	}
-
-	return &DeleteDoceUseCase{s, dr, nr, ur, gur}
+	helper.NotNilOrPanic(s, "StorageManager")
+	helper.NotNilOrPanic(dr, "DocRepository")
+	helper.NotNilOrPanic(nr, "NodeRepository")
+	helper.NotNilOrPanic(ur, "UsrRepository")
+	helper.NotNilOrPanic(gur, "GroupUsrRepository")
+	helper.NotNilOrPanic(mainLogger, "mainLogger")
+	log := mainLogger.With("usecase", "DeleteDocUseCase")
+	return &DeleteDoceUseCase{s, dr, nr, ur, gur, log}
 }
