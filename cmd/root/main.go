@@ -20,12 +20,12 @@ func main() {
 	cfg := config.LoadEnvConfig()
 	// SERVICES
 
-	usrname := flag.String("usrname", "", "Unique username (email) of user")
+	uname := flag.String("usrname", "", "Unique username (email) of user")
 	pwd := flag.String("pwd", "", "Password of the new user")
 
 	flag.Parse()
 
-	if *usrname == "" {
+	if *uname == "" {
 		fmt.Fprintln(os.Stderr, "error: -usrname is required")
 		flag.Usage()
 		os.Exit(1)
@@ -40,7 +40,7 @@ func main() {
 	usrDTO := dto.CreateUsrDTO{
 		Firstname: "admin",
 		Lastname:  "admin",
-		Username:  *usrname,
+		Username:  *uname,
 		Pwd:       *pwd,
 		Role:      domain.SuperUsrRole,
 		Access:    make([]dto.CreateAccessDTO, 0),
@@ -52,7 +52,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	pwdHasher := serv.NewPwdHasherArgon2(
+	hasher := serv.NewPwdHasherArgon2(
 		cfg.PwdTime,
 		cfg.PwdMemKiB,
 		cfg.PwdThreads,
@@ -76,10 +76,11 @@ func main() {
 		panic(err)
 	}
 	ur := pg.NewUsrRepository(db)
-	uow := pg.NewUnitOfWorkFactory(db, slog.Default(), time.Second*30)
-	createUsr := usecase.NewCreateUsrUseCase(ur, uow, pwdHasher, slog.Default())
+	uowFactory := pg.NewUnitOfWorkFactory(db, slog.Default(), time.Second*30)
+	uc := usecase.NewCreateUsrUseCase(ur, uowFactory, hasher, slog.Default())
+
 	ctx := context.Background()
-	usr, err := createUsr.Execute(ctx, usrDTO)
+	usr, err := uc.Execute(ctx, usrDTO)
 	if err != nil {
 		panic(err)
 	}

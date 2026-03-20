@@ -10,12 +10,12 @@ import (
 )
 
 type storageManagerFS struct {
-	DirPath string
+	Dir string
 }
 
-func (stg *storageManagerFS) Put(ctx context.Context, cmd storage.StorageUploadCommand) (uint64, error) {
-	filename := filepath.Join(stg.DirPath, cmd.Key)
-	f, err := os.OpenFile(filename, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0o644)
+func (stg *storageManagerFS) Put(ctx context.Context, c storage.StorageUploadCommand) (uint64, error) {
+	fname := filepath.Join(stg.Dir, c.Key)
+	f, err := os.OpenFile(fname, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0o644)
 	if err != nil {
 		return 0, err
 	}
@@ -26,17 +26,17 @@ func (stg *storageManagerFS) Put(ctx context.Context, cmd storage.StorageUploadC
 		}
 
 		if err != nil {
-			_ = os.Remove(filename)
+			_ = os.Remove(fname)
 		}
 	}()
 
-	r := io.LimitReader(cmd.File, int64(cmd.MaxSizeBytes)+1)
+	r := io.LimitReader(c.File, int64(c.MaxSizeBytes)+1)
 	n, err := io.Copy(f, r)
 	if err != nil {
 		return 0, err
 	}
 
-	if n > int64(cmd.MaxSizeBytes) {
+	if n > int64(c.MaxSizeBytes) {
 		err = storage.ErrFileTooLarge
 	}
 
@@ -44,10 +44,26 @@ func (stg *storageManagerFS) Put(ctx context.Context, cmd storage.StorageUploadC
 }
 
 func (stg *storageManagerFS) Download(ctx context.Context, key storage.FileKey) (io.ReadCloser, error) {
-	return nil, nil
+	fname := filepath.Join(stg.Dir, key)
+	f, err := os.Open(fname)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, storage.ErrFileNotFound
+		}
+
+		return nil, err
+	}
+
+	return f, nil
 }
 
-func (stg *storageManagerFS) Delete(ctx context.Context, key storage.FileKey) error {
+func (stg *storageManagerFS) Delete(ctx context.Context, k storage.FileKey) error {
+	fname := filepath.Join(stg.Dir, k)
+	err := os.Remove(fname)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
 	return nil
 }
 

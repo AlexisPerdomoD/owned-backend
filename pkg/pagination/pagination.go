@@ -1,3 +1,4 @@
+// Package pagination provides pagination functionality for the application layer.
 package pagination
 
 type PaginationParams struct {
