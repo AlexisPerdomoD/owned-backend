@@ -19,6 +19,10 @@ func (p NodePath) NewChildPath(nodeID uuid.UUID) NodePath {
 	return NodePath(string(p) + "." + strings.ReplaceAll(nodeID.String(), "-", "_"))
 }
 
+func (p NodePath) String() string {
+	return string(p)
+}
+
 type NodeType string
 
 const (

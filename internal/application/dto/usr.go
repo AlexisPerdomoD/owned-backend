@@ -1,6 +1,9 @@
 package dto
 
-import "ownned/internal/domain"
+import (
+	"ownned/internal/domain"
+	"ownned/pkg/apperror"
+)
 
 type CreateAccessDTO struct {
 	GroupID domain.GroupID        `json:"group_id" validate:"required,uuid7"`
@@ -12,17 +15,27 @@ type CreateUsrDTO struct {
 	Firstname string            `json:"firstname" validate:"required,min=2,max=50"`
 	Lastname  string            `json:"lastname" validate:"required,min=2,max=50"`
 	Username  string            `json:"username" validate:"required,email"`
-	Pwd       string            `json:"password" validate:"required,min=8,max=255,alphanum"`
+	Pwd       string            `validate:"required,min=8,max=255"`
 	Access    []CreateAccessDTO `json:"access" validate:"required,dive"`
 }
 
 func (dto *CreateUsrDTO) Validate() error {
-	return validate.Struct(dto)
+	if err := validate.Struct(dto); err != nil {
+		return err
+	}
+
+	if !isValidPwd(dto.Pwd) {
+		detail := make(map[string]string)
+		detail["invalid_password"] = "password does not contain any letter, digit or symbol"
+		return apperror.ErrBadRequest(detail)
+	}
+
+	return nil
 }
 
 type LoginUsrDTO struct {
 	Username string `json:"username" validate:"required,email"`
-	Pwd      string `json:"password" validate:"required,min=8,max=255,alphanum"`
+	Pwd      string `json:"password" validate:"required,min=8,max=255"`
 }
 
 func (dto *LoginUsrDTO) Validate() error {

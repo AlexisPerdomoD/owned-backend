@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"log/slog"
 
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
@@ -12,6 +13,7 @@ type GetRootNodesUseCase struct {
 	nodeRepository  domain.NodeRepository
 	usrRepository   domain.UsrRepository
 	groupRepository domain.GroupRepository
+	log             *slog.Logger
 }
 
 func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) ([]domain.Node, error) {
@@ -35,17 +37,20 @@ func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) 
 		}
 
 		if len(groups) == 0 {
-			return nil, apperror.ErrForbidden(nil)
+			detail := make(map[string]string)
+			detail["reason"] = "no groups associated with user"
+			return nil, apperror.ErrForbidden(detail)
 		}
 
-		groupIDs := make([]domain.GroupID, len(groups))
+		gIDs := make([]domain.GroupID, len(groups))
 		for i, g := range groups {
-			groupIDs[i] = g.ID
+			gIDs[i] = g.ID
 		}
 
-		return uc.nodeRepository.GetRootByGroups(ctx, groupIDs)
+		return uc.nodeRepository.GetRootByGroups(ctx, gIDs)
 
 	default:
+		uc.log.Warn("user role not supported for getting root nodes", "role", usr.Role)
 		return nil, apperror.ErrForbidden(nil)
 	}
 }
@@ -54,9 +59,12 @@ func NewGetRootNodesUseCase(
 	nr domain.NodeRepository,
 	ur domain.UsrRepository,
 	gr domain.GroupRepository,
+	mainLogger *slog.Logger,
 ) *GetRootNodesUseCase {
 	helper.NotNilOrPanic(nr, "NodeRepository")
 	helper.NotNilOrPanic(ur, "UsrRepository")
 	helper.NotNilOrPanic(gr, "GroupUsrRepository")
-	return &GetRootNodesUseCase{nr, ur, gr}
+	helper.NotNilOrPanic(mainLogger, "mainLogger")
+	log := mainLogger.With("usecase", "GetRootNodesUseCase")
+	return &GetRootNodesUseCase{nr, ur, gr, log}
 }

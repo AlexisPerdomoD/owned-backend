@@ -81,5 +81,8 @@ migrate-down: check-migrate
 start: 
 	go run ./cmd/server 
 
-seed-root: 
-	GOTRACEBACK=all go run ./cmd/root $(ARGS)
+superusr: 
+	GOTRACEBACK=all go run ./cmd/superusr $(ARGS)
+
+approot:
+	go run ./cmd/approot
