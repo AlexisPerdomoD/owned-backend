@@ -24,20 +24,20 @@ FROM fs.group_usrs gu`
 const getGroupAccessQuery string = "SELECT gu.access from fs.group_usrs gu\nWHERE gu.usr_id=$1 AND gu.group_id=$2"
 
 const getNodeAccessQuery string = `
-SELECT 
-	gu.access 
-FROM fs.group_usrs gu
-INNER JOIN fs.group_nodes gn 
-	ON gn.group_id = gu.group_id
-WHERE 
-	gn.node_id = $1
-	AND gu.usr_id = $2
-ORDER BY 
-	CASE gu.access
-    	WHEN 'write_access'     THEN 1
-    	WHEN 'read_only_access' THEN 2
-	END
-LIMIT 1`
+SELECT EXISTS ( 
+	SELECT 1 
+	FROM fs.group_usrs gu 
+	JOIN fs.group_nodes gn ON gn.group_id = gu.group_id 
+	JOIN fs.nodes n_grant ON n_grant.id = gn.node_id 
+
+	WHERE gu.usr_id = $1 
+	AND n_grant.path @> $2 AND ( 
+		gu.access = $3 OR (
+			gu.access = 'write_access' 
+			AND $3 = 'read_only_access'
+		) 
+	)  
+);`
 
 const upsertGroupUsrQuery = `
 INSERT INTO fs.group_usrs(
@@ -84,27 +84,32 @@ func (r *groupUsrRepository) GetGroupAccess(
 	err := r.db.QueryRowxContext(ctx, q, usrID, groupID).Scan(&access)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.GroupNoneAccess, nil
+			return domain.GroupReadOnlyAccess, domain.ErrNoAccess
 		}
 
-		return domain.GroupNoneAccess, err
+		return domain.GroupReadOnlyAccess, err
 	}
 
 	return access, nil
 }
 
-func (r *groupUsrRepository) GetNodeAccess(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) (domain.GroupUsrAccess, error) {
-	var access domain.GroupUsrAccess
-	err := r.db.QueryRowxContext(ctx, getNodeAccessQuery, usrID, nodeID).Scan(&access)
+func (r *groupUsrRepository) HasAccess(
+	ctx context.Context,
+	id domain.UsrID,
+	pth domain.NodePath,
+	acss domain.GroupUsrAccess,
+) error {
+	var hasAccess bool
+	err := r.db.QueryRowxContext(ctx, getNodeAccessQuery, id, pth, acss).Scan(&hasAccess)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return domain.GroupNoneAccess, nil
-		}
-
-		return domain.GroupNoneAccess, err
+		return err
 	}
 
-	return access, nil
+	if !hasAccess {
+		return domain.ErrNoAccess
+	}
+
+	return nil
 }
 
 func (r *groupUsrRepository) GetByUsr(ctx context.Context, usrID domain.UsrID) ([]domain.GroupUsr, error) {

@@ -28,6 +28,7 @@ func (uc *CreateUsrUseCase) Execute(
 	args dto.CreateUsrDTO,
 ) (*domain.Usr, error) {
 	if err := args.Validate(); err != nil {
+		uc.log.WarnContext(ctx, "failed to validate create usr dto", "err", err)
 		return nil, err
 	}
 

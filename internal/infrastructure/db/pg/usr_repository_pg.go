@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+	"ownned/pkg/pagination"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -160,6 +163,80 @@ func (r *usrRepository) GetByGroup(ctx context.Context, groupID domain.GroupID) 
 	}
 
 	return result, nil
+}
+
+func (r *usrRepository) Paginate(ctx context.Context, param domain.UsrPaginationParam) (
+	*pagination.PaginationResult[domain.Usr], error,
+) {
+	var where strings.Builder
+	params := make([]any, 0)
+	where.WriteString("\nWHERE 1=1")
+	if param.Role != nil {
+		statement := fmt.Sprintf("\nAND u.role = $%d", len(params)+1)
+		where.WriteString(statement)
+		params = append(params, *param.Role)
+	}
+
+	if param.Search != "" {
+		pos := len(params) + 1
+		statement := fmt.Sprintf("\nAND (u.username ILIKE $%d OR u.firstname ILIKE $%d OR u.lastname ILIKE $%d)",
+			pos,
+			pos,
+			pos,
+		)
+		where.WriteString(statement)
+		params = append(params, "%"+param.Search+"%")
+	}
+
+	whereStr := where.String()
+	countQuery := fmt.Sprintf("SELECT count(*) FROM fs.usrs u %s", whereStr)
+
+	var totalCount int64
+	err := r.db.QueryRowxContext(ctx, countQuery, params...).Scan(&totalCount)
+	if err != nil {
+		return nil, err
+	}
+
+	if totalCount == 0 {
+		return &pagination.PaginationResult[domain.Usr]{
+			Data:       make([]domain.Usr, 0),
+			Page:       param.Page,
+			Limit:  param.Limit,
+			TotalPages: 0,
+			TotalCount: 0,
+		}, nil
+	}
+
+	page := param.GetSafePage()
+	pageCount := param.GetSafeLimit()
+	totalPages := uint(math.Ceil(float64(totalCount) / float64(pageCount)))
+
+	query := fmt.Sprintf("%s%s\nORDER BY u.id\nLIMIT $%d OFFSET $%d",
+		getUsrQuery,
+		whereStr,
+		len(params)+1,
+		len(params)+2)
+	params = append(params, pageCount)
+	params = append(params, (page-1)*pageCount)
+
+	rows, err := r.db.QueryxContext(ctx, query, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer safeClose(ctx, rows)
+
+	data, err := readSlice[domain.Usr, usrRow](rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pagination.PaginationResult[domain.Usr]{
+		Data:       data,
+		Page:       page,
+		Limit:  pageCount,
+		TotalPages: totalPages,
+		TotalCount: uint(totalCount),
+	}, nil
 }
 
 func (r *usrRepository) Create(ctx context.Context, usr *domain.Usr) error {

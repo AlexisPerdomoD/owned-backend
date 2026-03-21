@@ -20,7 +20,7 @@ func (p NodePath) NewChildPath(nodeID uuid.UUID) NodePath {
 }
 
 func (p NodePath) String() string {
-	return string(p)
+	return strings.ReplaceAll(string(p), "_", "-")
 }
 
 type NodeType string

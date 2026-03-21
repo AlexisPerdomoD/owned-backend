@@ -13,12 +13,12 @@ import (
 )
 
 type DeleteDocUseCase struct {
-	storage            storage.StorageManager
-	docRepository      domain.DocRepository
-	nodeRepository     domain.NodeRepository
-	usrRepository      domain.UsrRepository
-	groupUsrRepository domain.GroupUsrRepository
-	log                *slog.Logger
+	accessChecker
+	storage        storage.StorageManager
+	docRepository  domain.DocRepository
+	nodeRepository domain.NodeRepository
+	usrRepository  domain.UsrRepository
+	log            *slog.Logger
 }
 
 func (uc *DeleteDocUseCase) Execute(ctx context.Context, usrID domain.UsrID, docID domain.DocID) (*dto.FileNodeDTO, error) {
@@ -55,14 +55,15 @@ func (uc *DeleteDocUseCase) Execute(ctx context.Context, usrID domain.UsrID, doc
 		return nil, err
 	}
 
-	accss, err := resolveNodeAccess(ctx, uc.groupUsrRepository, usr, node)
+	canDo, err := uc.hasAccessTo(ctx, usr, node.Path, domain.GroupWriteAccess)
 	if err != nil {
+		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", doc.NodeID, "error", err)
 		return nil, err
 	}
 
-	if accss != domain.GroupWriteAccess {
+	if !canDo {
 		detail := make(map[string]string)
-		detail["reason"] = "user does not have access to remove this doc"
+		detail["reason"] = fmt.Sprintf("User does not have access to specified node ID=%s", doc.NodeID.String())
 		return nil, apperror.ErrForbidden(detail)
 	}
 
@@ -93,5 +94,6 @@ func NewDeleteDocUseCase(
 	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
 	log := mainLogger.With("usecase", "DeleteDocUseCase")
-	return &DeleteDocUseCase{s, dr, nr, ur, gur, log}
+	ac := accessChecker{gur}
+	return &DeleteDocUseCase{ac, s, dr, nr, ur, log}
 }

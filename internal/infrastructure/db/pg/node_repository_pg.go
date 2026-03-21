@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 const getNodeQuery string = `
@@ -135,11 +137,25 @@ func (r *nodeRepository) GetRoot(ctx context.Context) ([]domain.Node, error) {
 
 func (r *nodeRepository) GetRootByGroups(ctx context.Context, groups []domain.GroupID) ([]domain.Node, error) {
 	if len(groups) == 0 {
-		return nil, apperror.ErrIlegalDBState(map[string]string{"invalid_argument": "no groups provided"})
+		detail := make(map[string]string)
+		detail["invalid_argument"] = "no groups provided for getting root nodes"
+		return nil, apperror.ErrIlegalDBState(detail)
 	}
 
-	q := fmt.Sprintf("%s\nINNER JOIN fs.group_nodes gn ON n.id=gn.node_id AND gn.group_id=ANY($1)", getNodeQuery)
-	rows, err := r.db.QueryxContext(ctx, q, groups)
+	q := fmt.Sprintf(`
+	WITH candidate_nodes AS (
+		%s
+		INNER JOIN fs.group_nodes gn ON n.id=gn.node_id 
+		WHERE gn.group_id=ANY($1::uuid[])
+	)
+	SELECT n.* FROM candidate_nodes n
+		WHERE NOT EXISTS (
+			SELECT 1 FROM candidate_nodes parent 
+			WHERE parent.path @> n.path
+			AND parent.id <> n.id
+		)`, getNodeQuery)
+
+	rows, err := r.db.QueryxContext(ctx, q, pq.Array(groups))
 	if err != nil {
 		return nil, err
 	}

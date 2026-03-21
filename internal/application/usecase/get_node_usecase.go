@@ -12,10 +12,10 @@ import (
 )
 
 type GetNodeUseCase struct {
+	accessChecker
 	ur  domain.UsrRepository
 	nr  domain.NodeRepository
 	dr  domain.DocRepository
-	gur domain.GroupUsrRepository
 	log *slog.Logger
 }
 
@@ -42,13 +42,13 @@ func (uc *GetNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeI
 		return nil, apperror.ErrNotFound(detail)
 	}
 
-	accss, err := resolveNodeAccess(ctx, uc.gur, usr, n)
+	canDo, err := uc.hasAccessTo(ctx, usr, n.Path, domain.GroupReadOnlyAccess)
 	if err != nil {
 		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", nodeID, "error", err)
 		return nil, err
 	}
 
-	if accss == domain.GroupNoneAccess {
+	if !canDo {
 		detail := make(map[string]string)
 		detail["reason"] = fmt.Sprintf("User does not have access to specified node ID=%s", nodeID.String())
 		return nil, apperror.ErrForbidden(detail)
@@ -92,5 +92,6 @@ func NewGetNodeByIDUseCase(
 	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
 	log := mainLogger.With("usecase", "GetNodeUseCase")
-	return &GetNodeUseCase{ur, nr, dr, gur, log}
+	ac := accessChecker{gur}
+	return &GetNodeUseCase{ac, ur, nr, dr, log}
 }

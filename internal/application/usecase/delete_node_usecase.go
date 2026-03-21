@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"time"
 
@@ -11,15 +10,16 @@ import (
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 	"ownned/pkg/concurrent"
+	"ownned/pkg/helper"
 )
 
 type DeleteNodeUseCase struct {
-	usrRepository      domain.UsrRepository
-	nodeRepository     domain.NodeRepository
-	docRepository      domain.DocRepository
-	groupUsrRepository domain.GroupUsrRepository
-	storage            storage.StorageManager
-	log                *slog.Logger
+	accessChecker
+	usrRepository  domain.UsrRepository
+	nodeRepository domain.NodeRepository
+	docRepository  domain.DocRepository
+	storage        storage.StorageManager
+	log            *slog.Logger
 }
 
 func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, nodeID domain.NodeID) error {
@@ -45,13 +45,13 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 		return apperror.ErrNotFound(map[string]string{"error": "node was not found by id=" + nodeID.String()})
 	}
 
-	accss, err := resolveNodeAccess(ctx, uc.groupUsrRepository, usr, node)
+	canDo, err := uc.hasAccessTo(ctx, usr, node.Path, domain.GroupWriteAccess)
 	if err != nil {
 		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", nodeID, "error", err)
 		return err
 	}
 
-	if accss != domain.GroupWriteAccess {
+	if !canDo {
 		detail := make(map[string]string)
 		detail["reason"] = fmt.Sprintf("User does not have access to specified node ID=%s", nodeID.String())
 		return apperror.ErrForbidden(detail)
@@ -114,11 +114,14 @@ func NewDeleteNodeUseCase(
 	storage storage.StorageManager,
 	mainLogger *slog.Logger,
 ) *DeleteNodeUseCase {
-	if ur == nil || nr == nil || dr == nil || gur == nil || storage == nil || mainLogger == nil {
-		log.Panicln("DeleteNodeUseCase some dependencies provided were nil")
-	}
-
+	helper.NotNilOrPanic(ur, "UsrRepository")
+	helper.NotNilOrPanic(nr, "NodeRepository")
+	helper.NotNilOrPanic(dr, "DocRepository")
+	helper.NotNilOrPanic(gur, "GroupUsrRepository")
+	helper.NotNilOrPanic(storage, "StorageManager")
+	helper.NotNilOrPanic(mainLogger, "mainLogger")
+	ac := accessChecker{gur}
 	logger := mainLogger.With("usecase", "DeleteNodeUseCase")
 
-	return &DeleteNodeUseCase{ur, nr, dr, gur, storage, logger}
+	return &DeleteNodeUseCase{ac, ur, nr, dr, storage, logger}
 }

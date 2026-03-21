@@ -12,9 +12,9 @@ import (
 )
 
 type CreateFolderUseCase struct {
-	nodeRepository     domain.NodeRepository
-	usrRepository      domain.UsrRepository
-	groupUsrRepository domain.GroupUsrRepository
+	accessChecker
+	nodeRepository domain.NodeRepository
+	usrRepository  domain.UsrRepository
 }
 
 func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.UsrID, args *dto.CreateFolderDTO) (*domain.Node, error) {
@@ -57,14 +57,14 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		return nil, apperror.ErrBadRequest(detail)
 	}
 
-	accss, err := resolveNodeAccess(ctx, uc.groupUsrRepository, usr, parent)
+	canDo, err := uc.hasAccessTo(ctx, usr, parent.Path, domain.GroupWriteAccess)
 	if err != nil {
 		return nil, err
 	}
 
-	if accss != domain.GroupWriteAccess {
+	if !canDo {
 		detail := make(map[string]string)
-		detail["reason"] = fmt.Sprintf("Cannot create nodes on this folder=%s with ID=%s", parent.Name, parent.ID)
+		detail["reason"] = fmt.Sprintf("User does not have access to specified node ID=%s", parent.ID.String())
 		return nil, apperror.ErrForbidden(detail)
 	}
 
@@ -96,5 +96,6 @@ func NewCreateFolderUseCase(
 	helper.NotNilOrPanic(nr, "NodeRepository")
 	helper.NotNilOrPanic(ur, "UsrRepository")
 	helper.NotNilOrPanic(gur, "GroupUsrRepository")
-	return &CreateFolderUseCase{nr, ur, gur}
+	ac := accessChecker{gur}
+	return &CreateFolderUseCase{ac, nr, ur}
 }

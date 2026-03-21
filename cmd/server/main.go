@@ -98,15 +98,22 @@ func main() {
 	// USERS
 	createUsr := usecase.NewCreateUsrUseCase(usrRepository, unitOfWorkFactory, pwdHasher, l)
 	getUsr := usecase.NewGetUsrUseCase(usrRepository)
+	paginateUsr := usecase.NewPaginateUsrUseCase(usrRepository)
 	loginUsr := usecase.NewLoginUsrUseCase(usrRepository, usrPwdRepository, pwdHasher, jwtService)
 	// USR ROUTES
-	usrHandler := handler.NewUsrHandler(loginUsr, createUsr, getUsr, handler.UsrHandlerConfig{
-		Secure:   cfg.Mode != "local",
-		SameSite: http.SameSiteLaxMode,
-	})
+	usrHandler := handler.NewUsrHandler(
+		loginUsr,
+		createUsr,
+		getUsr,
+		paginateUsr,
+		handler.UsrHandlerConfig{
+			Secure:   cfg.Mode != "local",
+			SameSite: http.SameSiteLaxMode,
+		})
 	usrR := chi.NewRouter()
 	usrR.Get("/{usrID}", authmiddleware.IsAuthenticated(usrHandler.GetUsrHandler))
 	usrR.Post("/", authmiddleware.IsSuperUsr(usrHandler.CreateUsrHandler))
+	usrR.Get("/paginate", authmiddleware.IsAuthenticated(usrHandler.PaginateUsrHandler))
 	usrR.Post("/login", usrHandler.LoginUsrHandler)
 	usrR.Post("/logout", usrHandler.LogoutUsrHandler)
 

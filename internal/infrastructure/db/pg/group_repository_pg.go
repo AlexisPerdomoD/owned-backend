@@ -20,7 +20,7 @@ SELECT
 	g.description,
 	g.created_at,
 	g.updated_at
-FROM fs.group g`
+FROM fs.groups g`
 
 const insertGroupQuery string = `
 INSERT INTO fs.groups(
@@ -109,7 +109,7 @@ func (r *groupRepository) GetByIDs(ctx context.Context, ids []domain.GroupID) (m
 }
 
 func (r *groupRepository) GetByUsr(ctx context.Context, usrID domain.UsrID) ([]domain.Group, error) {
-	q := fmt.Sprintf("%s\nINNER JOIN fs.group_usrs gu ON gu.group_id = g.id\nWHERE gu.usrID=$1", getGroupQuery)
+	q := fmt.Sprintf("%s\nINNER JOIN fs.group_usrs gu ON gu.group_id = g.id\nWHERE gu.usr_id=$1", getGroupQuery)
 	rows, err := r.db.QueryxContext(ctx, q, usrID)
 	if err != nil {
 		return nil, err

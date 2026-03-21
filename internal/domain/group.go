@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,10 +23,11 @@ type Group struct {
 type GroupUsrAccess string
 
 const (
-	GroupNoneAccess     GroupUsrAccess = "none_access"
 	GroupReadOnlyAccess GroupUsrAccess = "read_only_access"
 	GroupWriteAccess    GroupUsrAccess = "write_access"
 )
+
+var ErrNoAccess = errors.New("no access")
 
 type GroupUsr struct {
 	GroupID    GroupID
@@ -73,8 +75,8 @@ type GroupRepository interface {
 type GroupUsrRepository interface {
 	// GetGroupAccess returns the access of a user to a Group based on usrs group access, if no access is found it returns nil
 	GetGroupAccess(ctx context.Context, usrID UsrID, groupID GroupID) (GroupUsrAccess, error)
-	// GetNodeAccess returns the access of a user to a Node based on usrs group access, if no access is found it returns nil
-	GetNodeAccess(ctx context.Context, usrID UsrID, nodeID NodeID) (GroupUsrAccess, error)
+	// HasNodeAccess validate the access to specific node based on group usr assigment, if no access is found it returns ErrNoAccess
+	HasAccess(ctx context.Context, usrID UsrID, path NodePath, access GroupUsrAccess) error
 	// GetByUsr returns the access of a user to nodes
 	GetByUsr(ctx context.Context, usrID UsrID) ([]GroupUsr, error)
 	// Upsert access to a groups for a users

@@ -2,12 +2,14 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
 	"ownned/internal/application/usecase"
+	"ownned/internal/domain"
 	"ownned/internal/infrastructure/transport/http/decoder"
 	"ownned/internal/infrastructure/transport/http/encoder"
 	"ownned/internal/infrastructure/transport/http/view"
@@ -21,10 +23,11 @@ type UsrHandlerConfig struct {
 }
 
 type UsrHandler struct {
-	loginUsr  *usecase.LoginUsrUseCase
-	createUsr *usecase.CreateUsrUseCase
-	getUsr    *usecase.GetUsrUseCase
-	cfg       UsrHandlerConfig
+	loginUsr    *usecase.LoginUsrUseCase
+	createUsr   *usecase.CreateUsrUseCase
+	getUsr      *usecase.GetUsrUseCase
+	paginateUsr *usecase.PaginateUsrUseCase
+	cfg         UsrHandlerConfig
 }
 
 func (c *UsrHandler) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +46,38 @@ func (c *UsrHandler) GetUsrHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = encoder.WriteJSON(w, http.StatusOK, view.UsrViewFromDomain(usr))
+}
+
+func (c *UsrHandler) PaginateUsrHandler(w http.ResponseWriter, r *http.Request) {
+	var page, limit uint
+	var search string
+	var role *domain.UsrRole
+
+	q := r.URL.Query()
+
+	if rawpage, err := strconv.ParseUint(q.Get("page"), 10, 32); err == nil {
+		page = uint(rawpage)
+	}
+
+	if rawlimit, err := strconv.ParseUint(q.Get("limit"), 10, 32); err == nil {
+		limit = uint(rawlimit)
+	}
+
+	if rawsearch := q.Get("search"); rawsearch != "" {
+		search = rawsearch
+	}
+
+	if rawrole := domain.UsrRole(q.Get("role")); rawrole.IsValid() {
+		role = &rawrole
+	}
+
+	res, err := c.paginateUsr.Execute(r.Context(), page, limit, search, role)
+	if err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
+	_ = encoder.WriteJSON(w, http.StatusOK, view.PaginationResultViewFromDomain(res, view.UsrViewFromDomain))
 }
 
 func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {
@@ -115,10 +150,12 @@ func NewUsrHandler(
 	lu *usecase.LoginUsrUseCase,
 	cu *usecase.CreateUsrUseCase,
 	gu *usecase.GetUsrUseCase,
+	pu *usecase.PaginateUsrUseCase,
 	cfg UsrHandlerConfig,
 ) *UsrHandler {
 	helper.NotNilOrPanic(lu, "LoginUsrUseCase")
 	helper.NotNilOrPanic(cu, "CreateUsrUseCase")
 	helper.NotNilOrPanic(gu, "GetUsrUseCase")
-	return &UsrHandler{lu, cu, gu, cfg}
+	helper.NotNilOrPanic(pu, "PaginateUsrUseCase")
+	return &UsrHandler{lu, cu, gu, pu, cfg}
 }

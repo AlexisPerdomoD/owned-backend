@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -19,13 +20,13 @@ type CreateDocUseCaseResponse struct {
 }
 
 type CreateDocUseCase struct {
-	usrRepository      domain.UsrRepository
-	docRepository      domain.DocRepository
-	nodeRepository     domain.NodeRepository
-	groupUsrRepository domain.GroupUsrRepository
-	unitOfWorkFactory  domain.UnitOfWorkFactory
-	storage            storage.StorageManager
-	logger             *slog.Logger
+	accessChecker
+	usrRepository     domain.UsrRepository
+	docRepository     domain.DocRepository
+	nodeRepository    domain.NodeRepository
+	unitOfWorkFactory domain.UnitOfWorkFactory
+	storage           storage.StorageManager
+	logger            *slog.Logger
 }
 
 func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID, arg *dto.CreateDocInputDTO) (*CreateDocUseCaseResponse, error) {
@@ -61,14 +62,14 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, apperror.ErrBadRequest(detail)
 	}
 
-	accss, err := resolveNodeAccess(ctx, uc.groupUsrRepository, usr, folder)
+	canDo, err := uc.hasAccessTo(ctx, usr, folder.Path, domain.GroupWriteAccess)
 	if err != nil {
+		uc.logger.WarnContext(ctx, "failed to check if user can access node", "nodeID", folder.ID, "error", err)
 		return nil, err
 	}
-
-	if accss != domain.GroupWriteAccess {
+	if !canDo {
 		detail := make(map[string]string)
-		detail["reason"] = "User does not have access to create documents on this folder."
+		detail["reason"] = fmt.Sprintf("User does not have access to specified node ID=%s to create documents", folder.ID.String())
 		return nil, apperror.ErrForbidden(detail)
 	}
 
@@ -159,5 +160,6 @@ func NewCreateDocUseCase(
 	helper.NotNilOrPanic(storage, "StorageManager")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
 	logger := mainLogger.With("usecase", "CreateDocUseCase")
-	return &CreateDocUseCase{ur, dr, nr, gur, uowf, storage, logger}
+	ac := accessChecker{gur}
+	return &CreateDocUseCase{ac, ur, dr, nr, uowf, storage, logger}
 }

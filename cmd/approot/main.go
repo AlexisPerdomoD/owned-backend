@@ -36,7 +36,17 @@ func main() {
 		panic(err)
 	}
 
+	rootusrGroupID, err := uuid.NewV7()
+	if err != nil {
+		panic(err)
+	}
+
 	rootsharedID, err := uuid.NewV7()
+	if err != nil {
+		panic(err)
+	}
+
+	rootsharedGroupID, err := uuid.NewV7()
 	if err != nil {
 		panic(err)
 	}
@@ -49,12 +59,34 @@ func main() {
 		Path:        domain.NodePathUsrRoot,
 	}
 
+	rootusrGroup := domain.Group{
+		ID:          rootusrGroupID,
+		Name:        "Root group for usrs root folder",
+		Description: "Root group to contain all users root groups.",
+	}
+
+	rootusrGroupNode := domain.UpsertGroupNode{
+		GroupID: rootusrGroupID,
+		NodeID:  rootusrID,
+	}
+
 	rootshared := domain.Node{
 		ID:          rootsharedID,
 		Name:        domain.NodePathSharedRoot.String(),
 		Description: "Root folder to contain all shared folders.",
 		Type:        domain.FolderNodeType,
 		Path:        domain.NodePathSharedRoot,
+	}
+
+	rootsharedGroup := domain.Group{
+		ID:          rootsharedGroupID,
+		Name:        "Root group shared root folder",
+		Description: "Root group to contain all shared root groups.",
+	}
+
+	rootsharedGroupNode := domain.UpsertGroupNode{
+		GroupID: rootsharedGroupID,
+		NodeID:  rootsharedID,
 	}
 
 	uowFactory := pg.NewUnitOfWorkFactory(db, slog.Default(), time.Second*30)
@@ -65,7 +97,23 @@ func main() {
 			return err
 		}
 
+		if err := tx.GroupRepository().Create(tx.Ctx(), &rootusrGroup); err != nil {
+			return err
+		}
+
+		if err := tx.GroupNodeRepository().Upsert(tx.Ctx(), &rootusrGroupNode); err != nil {
+			return err
+		}
+
 		if err := tx.NodeRepository().Create(tx.Ctx(), &rootshared); err != nil {
+			return err
+		}
+
+		if err := tx.GroupRepository().Create(tx.Ctx(), &rootsharedGroup); err != nil {
+			return err
+		}
+
+		if err := tx.GroupNodeRepository().Upsert(tx.Ctx(), &rootsharedGroupNode); err != nil {
 			return err
 		}
 

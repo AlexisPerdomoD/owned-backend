@@ -64,8 +64,7 @@ CREATE TABLE fs.groups (
     created_at   timestamptz NOT NULL DEFAULT now(),
     updated_at   timestamptz NOT NULL DEFAULT now(),
 
-    CONSTRAINT groups_pk PRIMARY KEY (id),
-    CONSTRAINT groups_name_ux UNIQUE (name)
+    CONSTRAINT groups_pk PRIMARY KEY (id)
 );
 
 CREATE TRIGGER trg_groups_updated_at
@@ -114,8 +113,9 @@ FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
 CREATE INDEX idx_nodes_path_gist
     ON fs.nodes USING GIST (path);
 
-CREATE INDEX idx_nodes_path_btree
-    ON fs.nodes (path);
+-- (mejora join path)
+CREATE INDEX idx_nodes_id_path
+    ON fs.nodes(id, path);
 
 -- Enforce unique name per folder
 CREATE UNIQUE INDEX ux_nodes_parent_name
@@ -136,6 +136,9 @@ CREATE TABLE fs.group_nodes (
 
 CREATE INDEX idx_group_nodes_node
     ON fs.group_nodes(node_id);
+
+CREATE INDEX idx_group_nodes_group
+    ON fs.group_nodes(group_id);
 
 -- ============================
 -- Docs
