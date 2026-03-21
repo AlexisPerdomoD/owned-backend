@@ -56,3 +56,26 @@ func FileViewFromDomain(n *domain.Node, doc *domain.Doc) NodeView {
 		Doc:         &docView,
 	}
 }
+
+type NodeCommentView struct {
+	ID        domain.NodeCommentID `json:"id"`
+	NodeID    domain.NodeID        `json:"node_id"`
+	UsrID     domain.UsrID         `json:"usr_id"`
+	Content   string               `json:"content"`
+	CreatedAt time.Time            `json:"created_at"`
+	UpdatedAt time.Time            `json:"updated_at"`
+}
+
+func NodeCommentViewFromDomain(c *domain.NodeComment) NodeCommentView {
+	if c == nil {
+		return NodeCommentView{}
+	}
+	return NodeCommentView{
+		ID:        c.ID,
+		NodeID:    c.NodeID,
+		UsrID:     c.UsrID,
+		Content:   c.Content,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+	}
+}

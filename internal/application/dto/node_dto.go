@@ -37,3 +37,13 @@ type CreateFolderDTO struct {
 func (dto *CreateFolderDTO) Validate() error {
 	return validate.Struct(dto)
 }
+
+type CreateNodeCommentDTO struct {
+	Content string `json:"content" validate:"required,min=1,max=10000"`
+}
+
+func (dto *CreateNodeCommentDTO) Validate() error {
+	return validate.Struct(dto)
+}
+
+type UpdateNodeCommentDTO = CreateNodeCommentDTO

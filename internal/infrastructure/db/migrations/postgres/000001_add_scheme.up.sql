@@ -122,6 +122,29 @@ CREATE UNIQUE INDEX ux_nodes_parent_name
     ON fs.nodes (subpath(path, 0, nlevel(path)-1), name);
 
 -- ============================
+-- Node Comments
+-- ============================
+CREATE TABLE fs.node_comments (
+    id           UUID,
+    node_id      UUID NOT NULL,
+    usr_id      UUID NOT NULL,
+    content      text NOT NULL,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT node_comments_pk PRIMARY KEY (id),
+    CONSTRAINT node_comments_node_fk FOREIGN KEY (node_id) REFERENCES fs.nodes(id) ON DELETE CASCADE,
+    CONSTRAINT node_comments_usr_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE
+);
+
+CREATE TRIGGER trg_node_comments_updated_a
+BEFORE UPDATE ON fs.node_comments
+FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
+
+CREATE INDEX idx_node_comments_node
+    ON fs.node_comments(node_id);
+
+-- ============================
 -- Group ↔ Node
 -- ============================
 CREATE TABLE fs.group_nodes (

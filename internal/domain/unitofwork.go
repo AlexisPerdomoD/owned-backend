@@ -19,6 +19,13 @@ type UnitOfWork interface {
 	// All operations performed through the returned repository while Do is
 	// executing must participate in the active transaction.
 	NodeRepository() NodeRepository
+
+	// NodeCommentRepository returns a NodeCommentRepository bound to the current UnitOfWork.
+	//
+	// All operations performed through the returned repository while Do is
+	// executing must participate in the active transaction.
+	NodeCommentRepository() NodeCommentRepository
+
 	// DocRepository returns a DocRepository bound to the current UnitOfWork.
 	//
 	// All operations performed through the returned repository while Do is

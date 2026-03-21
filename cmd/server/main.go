@@ -66,7 +66,8 @@ func main() {
 	}
 
 	// SERVICES
-	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	l := slog.New(slog.
+		NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	jwtService := serv.NewJWTManagerST(
 		[]byte(cfg.SessionSecret),
@@ -90,72 +91,160 @@ func main() {
 	usrRepository := pg.NewUsrRepository(db)
 	usrPwdRepository := pg.NewUsrPwdRepository(db)
 	nodeRepository := pg.NewNodeRepository(db)
+	nodeCommentRepository := pg.NewNodeCommentRepository(db)
 	groupRepository := pg.NewGroupRepository(db)
 	groupUsrRepository := pg.NewGroupUsrRepository(db)
 	docRepository := pg.NewDocRepository(db)
 	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
 	// USERS
-	createUsr := usecase.NewCreateUsrUseCase(usrRepository, unitOfWorkFactory, pwdHasher, l)
-	getUsr := usecase.NewGetUsrUseCase(usrRepository)
-	paginateUsr := usecase.NewPaginateUsrUseCase(usrRepository)
-	loginUsr := usecase.NewLoginUsrUseCase(usrRepository, usrPwdRepository, pwdHasher, jwtService)
+	createUsr := usecase.
+		NewCreateUsrUseCase(
+			usrRepository,
+			unitOfWorkFactory,
+			pwdHasher,
+			l)
+	getUsr := usecase.
+		NewGetUsrUseCase(usrRepository)
+	paginateUsr := usecase.
+		NewPaginateUsrUseCase(usrRepository)
+	loginUsr := usecase.
+		NewLoginUsrUseCase(
+			usrRepository,
+			usrPwdRepository,
+			pwdHasher,
+			jwtService)
 	// USR ROUTES
-	usrHandler := handler.NewUsrHandler(
-		loginUsr,
-		createUsr,
-		getUsr,
-		paginateUsr,
-		handler.UsrHandlerConfig{
-			Secure:   cfg.Mode != "local",
-			SameSite: http.SameSiteLaxMode,
-		})
+	usrHandler := handler.
+		NewUsrHandler(
+			loginUsr,
+			createUsr,
+			getUsr,
+			paginateUsr,
+			handler.UsrHandlerConfig{
+				Secure:   cfg.Mode != "local",
+				SameSite: http.SameSiteLaxMode,
+			})
 	usrR := chi.NewRouter()
-	usrR.Get("/{usrID}", authmiddleware.IsAuthenticated(usrHandler.GetUsrHandler))
-	usrR.Post("/", authmiddleware.IsSuperUsr(usrHandler.CreateUsrHandler))
-	usrR.Get("/paginate", authmiddleware.IsAuthenticated(usrHandler.PaginateUsrHandler))
+	usrR.Get("/{usrID}", authmiddleware.
+		IsAuthenticated(usrHandler.GetUsrHandler))
+	usrR.Post("/", authmiddleware.
+		IsSuperUsr(usrHandler.CreateUsrHandler))
+	usrR.Get("/paginate", authmiddleware.
+		IsAuthenticated(usrHandler.PaginateUsrHandler))
 	usrR.Post("/login", usrHandler.LoginUsrHandler)
 	usrR.Post("/logout", usrHandler.LogoutUsrHandler)
 
 	// NODES
-	getRoot := usecase.NewGetRootNodesUseCase(nodeRepository, usrRepository, groupRepository, l)
-	createFolder := usecase.NewCreateFolderUseCase(nodeRepository, usrRepository, groupUsrRepository)
-	getNode := usecase.NewGetNodeByIDUseCase(usrRepository, nodeRepository, docRepository, groupUsrRepository, l)
+	getRoot := usecase.
+		NewGetRootNodesUseCase(
+			nodeRepository,
+			usrRepository,
+			groupRepository,
+			l)
+	createFolder := usecase.
+		NewCreateFolderUseCase(
+			nodeRepository,
+			usrRepository,
+			groupUsrRepository)
+	getNode := usecase.
+		NewGetNodeByIDUseCase(
+			usrRepository,
+			nodeRepository,
+			docRepository,
+			groupUsrRepository,
+			l)
 	// NODES ROUTES
-	nodeHandler := handler.NewNodeHandler(getRoot, createFolder, getNode)
+	nodeHandler := handler.
+		NewNodeHandler(
+			getRoot,
+			createFolder,
+			getNode)
 	nodeR := chi.NewRouter()
-	nodeR.Get("/", authmiddleware.IsAuthenticated(nodeHandler.GetRootHandler))
-	nodeR.Post("/", authmiddleware.IsAuthenticated(nodeHandler.CreateFolderHandler))
-	nodeR.Get("/{nodeID}", authmiddleware.IsAuthenticated(nodeHandler.GetNodeHandler))
+	nodeR.Get("/", authmiddleware.
+		IsAuthenticated(nodeHandler.GetRootHandler))
+	nodeR.Post("/", authmiddleware.
+		IsAuthenticated(nodeHandler.CreateFolderHandler))
+	nodeR.Get("/{nodeID}", authmiddleware.
+		IsAuthenticated(nodeHandler.GetNodeHandler))
+
+	// NODE COMMENTS
+	getNodeComments := usecase.
+		NewGetNodeCommentsUseCase(
+			usrRepository,
+			nodeRepository,
+			nodeCommentRepository,
+			groupUsrRepository)
+	createNodeComment := usecase.
+		NewCreateNodeCommentUseCase(
+			usrRepository,
+			nodeRepository,
+			nodeCommentRepository,
+			groupUsrRepository,
+			l)
+	updateNodeComment := usecase.
+		NewUpdateNodeCommentUseCase(
+			usrRepository,
+			nodeCommentRepository)
+	deleteNodeComment := usecase.
+		NewDeleteNodeCommentUseCase(
+			usrRepository,
+			nodeRepository,
+			nodeCommentRepository,
+			groupUsrRepository)
+	// NODE COMMENTS ROUTES
+	nodeCommentHandler := handler.
+		NewNodeCommentHandler(
+			getNodeComments,
+			createNodeComment,
+			updateNodeComment,
+			deleteNodeComment)
+	nodeCommentR := chi.NewRouter()
+	nodeR.Get("/:nodeID/comments", authmiddleware.
+		IsAuthenticated(nodeCommentHandler.GetNodeCommentsHandler))
+	nodeR.Post("/:nodeID/comments", authmiddleware.
+		IsAuthenticated(nodeCommentHandler.CreateNodeCommentHandler))
+	nodeCommentR.Patch("/{nodeCommentID}", authmiddleware.
+		IsAuthenticated(nodeCommentHandler.UpdateNodeCommentHandler))
+	nodeCommentR.Delete("/{nodeCommentID}", authmiddleware.
+		IsAuthenticated(nodeCommentHandler.DeleteNodeCommentHandler))
 
 	// DOCS
-	createDoc := usecase.NewCreateDocUseCase(
-		usrRepository,
-		docRepository,
-		nodeRepository,
-		groupUsrRepository,
-		unitOfWorkFactory,
-		storage,
-		l)
-	deleteDoc := usecase.NewDeleteDocUseCase(
-		storage,
-		docRepository,
-		nodeRepository,
-		usrRepository,
-		groupUsrRepository,
-		l)
+	createDoc := usecase.
+		NewCreateDocUseCase(
+			usrRepository,
+			docRepository,
+			nodeRepository,
+			groupUsrRepository,
+			unitOfWorkFactory,
+			storage,
+			l)
+	deleteDoc := usecase.
+		NewDeleteDocUseCase(
+			storage,
+			docRepository,
+			nodeRepository,
+			usrRepository,
+			groupUsrRepository,
+			l)
 
 	// DOCS ROUTES
-	docHandler := handler.NewDocHandler(createDoc, deleteDoc)
+	docHandler := handler.
+		NewDocHandler(
+			createDoc,
+			deleteDoc)
 	docR := chi.NewRouter()
-	docR.Post("/", authmiddleware.IsAuthenticated(docHandler.CreateDocHandler))
-	docR.Delete("/{docID}", authmiddleware.IsAuthenticated(docHandler.DeleteDocHandler))
+	docR.Post("/", authmiddleware.
+		IsAuthenticated(docHandler.CreateDocHandler))
+	docR.Delete("/{docID}", authmiddleware.
+		IsAuthenticated(docHandler.DeleteDocHandler))
 
 	// SERVER ROUTES
 
 	r := chi.NewRouter()
 	r.Mount("/api/v1/usrs", usrR)
 	r.Mount("/api/v1/nodes", nodeR)
+	r.Mount("/api/v1/comments", nodeCommentR)
 	r.Mount("/api/v1/docs", docR)
 	logRoutes(r, l)
 

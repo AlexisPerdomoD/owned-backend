@@ -11,15 +11,16 @@ import (
 )
 
 type unitOfWork struct {
-	tx                  *sqlx.Tx
-	ctx                 context.Context
-	nodeRepository      domain.NodeRepository
-	usrRepository       domain.UsrRepository
-	usrPwdRepository    domain.UsrPwdRepository
-	docRepository       domain.DocRepository
-	groupRepository     domain.GroupRepository
-	groupUsrRepository  domain.GroupUsrRepository
-	groupNodeRepository domain.GroupNodeRepository
+	tx                    *sqlx.Tx
+	ctx                   context.Context
+	usrRepository         domain.UsrRepository
+	usrPwdRepository      domain.UsrPwdRepository
+	nodeRepository        domain.NodeRepository
+	nodeCommentRepository domain.NodeCommentRepository
+	docRepository         domain.DocRepository
+	groupRepository       domain.GroupRepository
+	groupUsrRepository    domain.GroupUsrRepository
+	groupNodeRepository   domain.GroupNodeRepository
 }
 
 func (u *unitOfWork) Ctx() context.Context {
@@ -32,6 +33,14 @@ func (u *unitOfWork) NodeRepository() domain.NodeRepository {
 	}
 
 	return u.nodeRepository
+}
+
+func (u *unitOfWork) NodeCommentRepository() domain.NodeCommentRepository {
+	if u.nodeCommentRepository == nil {
+		u.nodeCommentRepository = NewNodeCommentRepository(u.tx)
+	}
+
+	return u.nodeCommentRepository
 }
 
 func (u *unitOfWork) DocRepository() domain.DocRepository {
