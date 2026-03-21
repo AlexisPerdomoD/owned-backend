@@ -105,9 +105,10 @@ func main() {
 		SameSite: http.SameSiteLaxMode,
 	})
 	usrR := chi.NewRouter()
-	usrR.Get("/{id}", authmiddleware.IsAuthenticated(usrHandler.GetUsrHandler))
-	usrR.Post("/", authmiddleware.IsAuthenticated(usrHandler.CreateUsrHandler))
+	usrR.Get("/{usrID}", authmiddleware.IsAuthenticated(usrHandler.GetUsrHandler))
+	usrR.Post("/", authmiddleware.IsSuperUsr(usrHandler.CreateUsrHandler))
 	usrR.Post("/login", usrHandler.LoginUsrHandler)
+	usrR.Post("/logout", usrHandler.LogoutUsrHandler)
 
 	// NODES
 	getRoot := usecase.NewGetRootNodesUseCase(nodeRepository, usrRepository, groupRepository, l)
@@ -121,13 +122,30 @@ func main() {
 	nodeR.Get("/{nodeID}", authmiddleware.IsAuthenticated(nodeHandler.GetNodeHandler))
 
 	// DOCS
-	createDoc := usecase.NewCreateDocUseCase(usrRepository, docRepository, nodeRepository, groupUsrRepository, unitOfWorkFactory, storage, l)
+	createDoc := usecase.NewCreateDocUseCase(
+		usrRepository,
+		docRepository,
+		nodeRepository,
+		groupUsrRepository,
+		unitOfWorkFactory,
+		storage,
+		l)
+	deleteDoc := usecase.NewDeleteDocUseCase(
+		storage,
+		docRepository,
+		nodeRepository,
+		usrRepository,
+		groupUsrRepository,
+		l)
+
 	// DOCS ROUTES
-	docHandler := handler.NewDocHandler(createDoc)
+	docHandler := handler.NewDocHandler(createDoc, deleteDoc)
 	docR := chi.NewRouter()
 	docR.Post("/", authmiddleware.IsAuthenticated(docHandler.CreateDocHandler))
+	docR.Delete("/{docID}", authmiddleware.IsAuthenticated(docHandler.DeleteDocHandler))
 
 	// SERVER ROUTES
+
 	r := chi.NewRouter()
 	r.Mount("/api/v1/usrs", usrR)
 	r.Mount("/api/v1/nodes", nodeR)

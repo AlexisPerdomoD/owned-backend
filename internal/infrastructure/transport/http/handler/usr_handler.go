@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -91,6 +92,23 @@ func (c *UsrHandler) LoginUsrHandler(w http.ResponseWriter, r *http.Request) {
 	resp := make(map[string]string)
 	resp["message"] = "logged properly"
 	_ = encoder.WriteJSON(w, http.StatusCreated, resp)
+}
+
+func (c *UsrHandler) LogoutUsrHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   c.cfg.Secure,
+		SameSite: c.cfg.SameSite,
+	})
+
+	resp := make(map[string]string)
+	resp["message"] = "logged out properly"
+	_ = encoder.WriteJSON(w, http.StatusOK, resp)
 }
 
 func NewUsrHandler(

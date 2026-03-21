@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	"ownned/internal/application/dto"
 	"ownned/internal/application/storage"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
 )
 
-type DeleteDoceUseCase struct {
+type DeleteDocUseCase struct {
 	storage            storage.StorageManager
 	docRepository      domain.DocRepository
 	nodeRepository     domain.NodeRepository
@@ -20,8 +21,8 @@ type DeleteDoceUseCase struct {
 	log                *slog.Logger
 }
 
-func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, docID domain.DocID) (*domain.Doc, error) {
-	usr, err := uc.usrRepository.GetByID(ctx, userID)
+func (uc *DeleteDocUseCase) Execute(ctx context.Context, usrID domain.UsrID, docID domain.DocID) (*dto.FileNodeDTO, error) {
+	usr, err := uc.usrRepository.GetByID(ctx, usrID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func (uc *DeleteDoceUseCase) Execute(ctx context.Context, userID domain.UsrID, d
 		return nil, err
 	}
 
-	return doc, nil
+	return &dto.FileNodeDTO{Node: *node, Doc: *doc}, nil
 }
 
 func NewDeleteDocUseCase(
@@ -84,7 +85,7 @@ func NewDeleteDocUseCase(
 	ur domain.UsrRepository,
 	gur domain.GroupUsrRepository,
 	mainLogger *slog.Logger,
-) *DeleteDoceUseCase {
+) *DeleteDocUseCase {
 	helper.NotNilOrPanic(s, "StorageManager")
 	helper.NotNilOrPanic(dr, "DocRepository")
 	helper.NotNilOrPanic(nr, "NodeRepository")
@@ -92,5 +93,5 @@ func NewDeleteDocUseCase(
 	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
 	log := mainLogger.With("usecase", "DeleteDocUseCase")
-	return &DeleteDoceUseCase{s, dr, nr, ur, gur, log}
+	return &DeleteDocUseCase{s, dr, nr, ur, gur, log}
 }

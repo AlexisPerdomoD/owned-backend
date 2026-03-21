@@ -3,17 +3,21 @@ package handler
 import (
 	"net/http"
 
-	"github.com/google/uuid"
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/sctx"
 	"ownned/internal/infrastructure/transport/http/decoder"
 	"ownned/internal/infrastructure/transport/http/encoder"
 	"ownned/internal/infrastructure/transport/http/view"
+	"ownned/pkg/apperror"
 	"ownned/pkg/helper"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type DocHandler struct {
 	createDoc *usecase.CreateDocUseCase
+	deleteDoc *usecase.DeleteDocUseCase
 }
 
 func (h *DocHandler) CreateDocHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +55,42 @@ func (h *DocHandler) CreateDocHandler(w http.ResponseWriter, r *http.Request) {
 	_ = encoder.WriteJSON(w, http.StatusCreated, resp)
 }
 
-func NewDocHandler(cduc *usecase.CreateDocUseCase) *DocHandler {
+func (h *DocHandler) DeleteDocHandler(w http.ResponseWriter, r *http.Request) {
+	session, err := sctx.GetSession(r.Context())
+	if err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
+	usrID, err := uuid.Parse(session.UsrID)
+	if err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
+	docID, err := uuid.Parse(chi.URLParam(r, "docID"))
+	if err != nil {
+		detail := make(map[string]string)
+		detail["docID"] = "invalid uuid provided"
+		_ = encoder.WriteJSONError(w, apperror.ErrBadRequest(detail))
+		return
+	}
+
+	deletedFileNode, err := h.deleteDoc.Execute(r.Context(), usrID, docID)
+	if err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
+	_ = encoder.WriteJSON(w, http.StatusOK,
+		view.FileViewFromDomain(
+			&deletedFileNode.Node,
+			&deletedFileNode.Doc,
+		))
+}
+
+func NewDocHandler(cduc *usecase.CreateDocUseCase, dduc *usecase.DeleteDocUseCase) *DocHandler {
 	helper.NotNilOrPanic(cduc, "CreateDocUseCase")
-	return &DocHandler{cduc}
+	helper.NotNilOrPanic(dduc, "DeleteDocUseCase")
+	return &DocHandler{cduc, dduc}
 }
