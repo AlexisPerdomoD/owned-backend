@@ -7,6 +7,10 @@ type CreateGroupDTO struct {
 	Description string `json:"description" validate:"max=1000"`
 }
 
+func (dto *CreateGroupDTO) Validate() error {
+	return validate.Struct(dto)
+}
+
 type PopulateGroup struct {
 	domain.Group
 	Nodes []domain.NodeGroupAttach

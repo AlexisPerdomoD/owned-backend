@@ -11,16 +11,16 @@ import (
 )
 
 type CreateGroupUseCase struct {
-	usrRepository   domain.UsrRepository
-	groupRepository domain.GroupRepository
+	ur  domain.UsrRepository
+	uow domain.UnitOfWorkFactory
 }
 
 func (uc *CreateGroupUseCase) Execute(
 	ctx context.Context,
 	usrID domain.UsrID,
-	args dto.CreateGroupDTO,
+	args *dto.CreateGroupDTO,
 ) (*domain.Group, error) {
-	usr, err := uc.usrRepository.GetByID(ctx, usrID)
+	usr, err := uc.ur.GetByID(ctx, usrID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,27 +34,43 @@ func (uc *CreateGroupUseCase) Execute(
 		return nil, apperror.ErrForbidden(detail)
 	}
 
-	id, err := uuid.NewV7()
+	groupID, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
 	}
 
 	group := &domain.Group{
-		ID:          id,
+		ID:          groupID,
 		UsrID:       usr.ID,
 		Name:        args.Name,
 		Description: args.Description,
 	}
 
-	if err := uc.groupRepository.Create(ctx, group); err != nil {
+	groupUsr := &domain.UpsertGroupUsr{
+		GroupID: group.ID,
+		UsrID:   usr.ID,
+		Access:  domain.GroupOwnerAccess,
+	}
+
+	if err := uc.uow.Do(ctx, func(tx domain.UnitOfWork) error {
+		if err := tx.GroupRepository().Create(tx.Ctx(), group); err != nil {
+			return err
+		}
+
+		if err := tx.GroupUsrRepository().Upsert(tx.Ctx(), groupUsr); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 
 	return group, nil
 }
 
-func NewCreateGroupUseCase(ur domain.UsrRepository, gr domain.GroupRepository) *CreateGroupUseCase {
+func NewCreateGroupUseCase(ur domain.UsrRepository, uowf domain.UnitOfWorkFactory) *CreateGroupUseCase {
 	helper.NotNilOrPanic(ur, "UsrRepository")
-	helper.NotNilOrPanic(gr, "GroupRepository")
-	return &CreateGroupUseCase{ur, gr}
+	helper.NotNilOrPanic(uowf, "UnitOfWorkFactory")
+	return &CreateGroupUseCase{ur, uowf}
 }
