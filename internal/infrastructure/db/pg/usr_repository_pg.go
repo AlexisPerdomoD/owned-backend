@@ -72,6 +72,7 @@ type usrRow struct {
 	UpdatedAt time.Time      `db:"updated_at"`
 }
 
+
 func (r *usrRow) ToDomain() domain.Usr {
 	return domain.Usr{
 		ID:        r.ID,

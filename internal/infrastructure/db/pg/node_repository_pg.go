@@ -174,7 +174,7 @@ func (r *nodeRepository) GetRootByGroups(ctx context.Context, groups []domain.Gr
 }
 
 func (r *nodeRepository) GetByGroup(ctx context.Context, groupID domain.GroupID) ([]domain.NodeGroupAttach, error) {
-	q := fmt.Sprintf("%s\nINNER JOIN fs.group_nodes gn ON gn.node_id=n.id\nWHERE gn.group_id=$1", getNodeAttachQuery)
+	q := fmt.Sprintf("%s\nWHERE gn.group_id=$1", getNodeAttachQuery)
 	rows, err := r.db.QueryxContext(ctx, q, groupID)
 	if err != nil {
 		return nil, err
