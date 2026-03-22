@@ -6,10 +6,9 @@ import (
 	"ownned/internal/domain"
 )
 
-var (
-	ErrInvalidToken = errors.New("invalid token")
-	ErrExpiredToken = errors.New("expired token")
-)
+var ErrInvalidToken = errors.New("invalid token")
+
+var ErrExpiredToken = errors.New("expired token")
 
 // JWTAccessPayload is the payload of the JWT token for access tokens.
 type JWTAccessPayload struct {
