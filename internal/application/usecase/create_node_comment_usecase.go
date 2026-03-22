@@ -46,7 +46,7 @@ func (uc *CreateNodeCommentUseCase) Execute(
 		return nil, apperror.ErrNotFound(detail)
 	}
 
-	canDo, err := uc.hasAccessTo(ctx, usr, node.Path, domain.GroupReadOnlyAccess)
+	canDo, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupReadOnlyAccess)
 	if err != nil {
 		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", nodeID, "error", err)
 		return nil, err

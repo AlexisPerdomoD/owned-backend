@@ -37,7 +37,7 @@ func (uc *GetNodeCommentsUseCase) Execute(ctx context.Context, usrID domain.UsrI
 		return nil, apperror.ErrNotFound(detail)
 	}
 
-	canDo, err := uc.hasAccessTo(ctx, usr, node.Path, domain.GroupReadOnlyAccess)
+	canDo, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupReadOnlyAccess)
 	if err != nil {
 		return nil, err
 	}

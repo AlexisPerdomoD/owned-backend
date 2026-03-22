@@ -45,7 +45,7 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, usrID domain.UsrID, no
 		return apperror.ErrNotFound(map[string]string{"error": "node was not found by id=" + nodeID.String()})
 	}
 
-	canDo, err := uc.hasAccessTo(ctx, usr, node.Path, domain.GroupWriteAccess)
+	canDo, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupWriteAccess)
 	if err != nil {
 		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", nodeID, "error", err)
 		return err

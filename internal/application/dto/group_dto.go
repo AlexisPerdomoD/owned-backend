@@ -11,7 +11,7 @@ func (dto *CreateGroupDTO) Validate() error {
 	return validate.Struct(dto)
 }
 
-type PopulateGroup struct {
+type PopulateGroupDTO struct {
 	domain.Group
 	Nodes []domain.NodeGroupAttach
 	Usrs  []domain.UsrGroupAccess

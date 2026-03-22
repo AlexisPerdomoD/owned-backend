@@ -61,7 +61,7 @@ func (uc *DeleteDocUseCase) Execute(ctx context.Context, usrID domain.UsrID, doc
 		return nil, err
 	}
 
-	canDo, err := uc.hasAccessTo(ctx, usr, node.Path, domain.GroupWriteAccess)
+	canDo, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupWriteAccess)
 	if err != nil {
 		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", doc.NodeID, "error", err)
 		return nil, err

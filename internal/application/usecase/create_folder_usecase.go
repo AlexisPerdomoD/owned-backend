@@ -55,7 +55,7 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		return nil, apperror.ErrBadRequest(detail)
 	}
 
-	canDo, err := uc.hasAccessTo(ctx, usr, parent.Path, domain.GroupWriteAccess)
+	canDo, err := uc.hasNodeAccessTo(ctx, usr, parent.Path, domain.GroupWriteAccess)
 	if err != nil {
 		return nil, err
 	}

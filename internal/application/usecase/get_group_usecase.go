@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
 	"ownned/internal/application/dto"
 	"ownned/internal/domain"
@@ -10,19 +11,43 @@ import (
 )
 
 type GetGroupUseCase struct {
+	accessChecker
 	groupRepository domain.GroupRepository
 	usrRepository   domain.UsrRepository
 	nodeRepository  domain.NodeRepository
 }
 
-func (uc *GetGroupUseCase) Execute(ctx context.Context, id domain.GroupID) (*dto.PopulateGroup, error) {
-	group, err := uc.groupRepository.GetByID(ctx, id)
+func (uc *GetGroupUseCase) Execute(ctx context.Context, usrID domain.UsrID, groupID domain.GroupID) (*dto.PopulateGroupDTO, error) {
+	usr, err := uc.usrRepository.GetByID(ctx, usrID)
+	if err != nil {
+		return nil, err
+	}
+
+	if usr == nil {
+		return nil, apperror.ErrUnauthenticated(nil)
+	}
+
+	group, err := uc.groupRepository.GetByID(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
 	if group == nil {
-		return nil, apperror.ErrNotFound(map[string]string{"error": "group entity was not found"})
+		detail := make(map[string]string)
+		detail["error"] = fmt.Sprintf("Group with ID=%s was not found", groupID)
+		return nil, apperror.ErrNotFound(detail)
 	}
+
+	canDo, err := uc.hasGroupAccessTo(ctx, usr, group.ID, domain.GroupReadOnlyAccess)
+	if err != nil {
+		return nil, err
+	}
+
+	if !canDo {
+		detail := make(map[string]string)
+		detail["reason"] = fmt.Sprintf("User does not have access to specified group ID=%s", groupID)
+		return nil, apperror.ErrForbidden(detail)
+	}
+
 	// this may be concurrent called with
 	// errgroup.WithContext(ctx)
 	// "golang.org/x/sync/errgroup"
@@ -36,22 +61,23 @@ func (uc *GetGroupUseCase) Execute(ctx context.Context, id domain.GroupID) (*dto
 		return nil, err
 	}
 
-	resp := &dto.PopulateGroup{
+	return &dto.PopulateGroupDTO{
 		Group: *group,
 		Usrs:  usrs,
 		Nodes: nodes,
-	}
-
-	return resp, nil
+	}, nil
 }
 
 func NewGetGroupUseCase(
-	gr domain.GroupRepository,
 	ur domain.UsrRepository,
 	nr domain.NodeRepository,
+	gr domain.GroupRepository,
+	gur domain.GroupUsrRepository,
 ) *GetGroupUseCase {
 	helper.NotNilOrPanic(gr, "GroupRepository")
 	helper.NotNilOrPanic(ur, "UsrRepository")
 	helper.NotNilOrPanic(nr, "NodeRepository")
-	return &GetGroupUseCase{gr, ur, nr}
+	helper.NotNilOrPanic(gur, "GroupUsrRepository")
+	ac := accessChecker{gur}
+	return &GetGroupUseCase{ac, gr, ur, nr}
 }

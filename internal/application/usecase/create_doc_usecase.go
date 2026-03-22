@@ -64,7 +64,7 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 		return nil, apperror.ErrBadRequest(detail)
 	}
 
-	canDo, err := uc.hasAccessTo(ctx, usr, folder.Path, domain.GroupWriteAccess)
+	canDo, err := uc.hasNodeAccessTo(ctx, usr, folder.Path, domain.GroupWriteAccess)
 	if err != nil {
 		uc.logger.WarnContext(ctx, "failed to check if user can access node", "nodeID", folder.ID, "error", err)
 		return nil, err

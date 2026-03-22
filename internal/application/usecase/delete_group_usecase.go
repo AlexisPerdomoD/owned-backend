@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
@@ -9,6 +10,7 @@ import (
 )
 
 type DeleteGroupUseCase struct {
+	accessChecker
 	usrRepository   domain.UsrRepository
 	groupRepository domain.GroupRepository
 }
@@ -40,6 +42,17 @@ func (uc *DeleteGroupUseCase) Execute(ctx context.Context, usrID domain.UsrID, g
 		return nil, apperror.ErrNotFound(detail)
 	}
 
+	canDo, err := uc.hasGroupAccessTo(ctx, usr, group.ID, domain.GroupOwnerAccess)
+	if err != nil {
+		return nil, err
+	}
+
+	if !canDo {
+		detail := make(map[string]string)
+		detail["reason"] = fmt.Sprintf("User does not have access to specified group ID=%s", groupID)
+		return nil, apperror.ErrForbidden(detail)
+	}
+
 	if err := uc.groupRepository.Delete(ctx, group.ID); err != nil {
 		return nil, err
 	}
@@ -47,8 +60,9 @@ func (uc *DeleteGroupUseCase) Execute(ctx context.Context, usrID domain.UsrID, g
 	return group, nil
 }
 
-func NewDeleteGroupUseCase(ur domain.UsrRepository, gr domain.GroupRepository) *DeleteGroupUseCase {
+func NewDeleteGroupUseCase(ur domain.UsrRepository, gr domain.GroupRepository, gur domain.GroupUsrRepository) *DeleteGroupUseCase {
 	helper.NotNilOrPanic(ur, "usrRepository")
 	helper.NotNilOrPanic(gr, "groupRepository")
-	return &DeleteGroupUseCase{ur, gr}
+	ac := accessChecker{gur}
+	return &DeleteGroupUseCase{ac, ur, gr}
 }
