@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"ownned/pkg/pagination"
+
 	"github.com/google/uuid"
 )
 
@@ -29,6 +31,12 @@ const (
 	GroupOwnerAccess    GroupUsrAccess = "owner_access"
 )
 
+var groupAccessRank = map[GroupUsrAccess]int{
+	GroupReadOnlyAccess: 1,
+	GroupWriteAccess:    2,
+	GroupOwnerAccess:    3,
+}
+
 func (a GroupUsrAccess) String() string {
 	switch a {
 	case GroupReadOnlyAccess:
@@ -40,6 +48,10 @@ func (a GroupUsrAccess) String() string {
 	default:
 		return "Unknown Access"
 	}
+}
+
+func (a GroupUsrAccess) IsEquivalent(b GroupUsrAccess) bool {
+	return groupAccessRank[a] >= groupAccessRank[b]
 }
 
 var ErrNoAccess = errors.New("no access")
@@ -68,6 +80,11 @@ type UpsertGroupNode struct {
 	NodeID  NodeID
 }
 
+type GroupPaginateParam struct {
+	UsrID *UsrID
+	pagination.PaginationParam
+}
+
 // GroupRepository is the interface to interact with the group repository
 type GroupRepository interface {
 	// GetByID returns a group by its identifier
@@ -78,6 +95,8 @@ type GroupRepository interface {
 	GetByUsr(ctx context.Context, usrID UsrID) ([]Group, error)
 	// GetByUsrAssigned returns a list of groups attached to a user and their access
 	GetByUsrAssigned(ctx context.Context, usrID UsrID) ([]Group, error)
+	// Paginate returns a list of groups with pagination based on the provided pagination param
+	Paginate(ctx context.Context, param GroupPaginateParam) (*pagination.PaginationResult[Group], error)
 	// Create a new group in the system
 	// Returns an error if nil data is provided
 	Create(ctx context.Context, d *Group) error
@@ -90,7 +109,7 @@ type GroupRepository interface {
 
 // GroupUsrRepository is the interface to interact with usr - group relations
 type GroupUsrRepository interface {
-	// GetGroupAccess returns the access of a user to a Group based on usrs group access, if no access is found it returns nil
+	// GetGroupAccess returns the access of a user to a Group based on usrs group access, if no access is found it returns nil , ErrNoAccess
 	GetGroupAccess(ctx context.Context, usrID UsrID, groupID GroupID) (GroupUsrAccess, error)
 	// HasNodeAccess validate the access to specific node based on group usr assigment, if no access is found it returns ErrNoAccess
 	HasAccess(ctx context.Context, usrID UsrID, path NodePath, access GroupUsrAccess) error
