@@ -21,6 +21,12 @@ DROP TRIGGER IF EXISTS trg_nodes_updated_at ON fs.nodes;
 DROP TABLE IF EXISTS fs.nodes;
 
 -- ============================
+-- Node Comments
+-- ============================
+DROP TRIGGER IF EXISTS trg_node_comments_updated_a ON fs.node_comments;
+DROP TABLE IF EXISTS fs.node_comments;
+
+-- ============================
 -- Group ↔ User
 -- ============================
 DROP INDEX IF EXISTS fs.idx_group_usrs_user;

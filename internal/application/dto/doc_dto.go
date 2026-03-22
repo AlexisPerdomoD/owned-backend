@@ -7,12 +7,12 @@ import (
 )
 
 type CreateDocInputDTO struct {
-	ParentID     domain.NodeID `json:"parentID"`
-	Title        string        `json:"title" validate:"required,alphanum,min=1,max=255"`
+	ParentID     domain.NodeID `json:"parentID" validate:"required"`
+	Filename     string        `json:"filename" validate:"required,min=1"`
 	Description  string        `json:"description" validate:"max=255"`
-	ExpectedSize uint64        `json:"size"`
-	Mimetype     string        `json:"mimetype"`
-	File         io.ReadCloser `json:"file"`
+	ExpectedSize uint64        `json:"size" validate:"required,gte=0"`
+	Mimetype     string        `json:"mimetype" validate:"required,max=255"`
+	File         io.ReadCloser `json:"file" validate:"required"`
 }
 
 func (dto *CreateDocInputDTO) Validate() error {

@@ -7,7 +7,7 @@ import (
 )
 
 type UsrView struct {
-	ID        string         `json:"id"`
+	ID        domain.UsrID   `json:"id"`
 	Role      domain.UsrRole `json:"role"`
 	RoleTitle string         `json:"role_title"`
 	Firstname string         `json:"firstname"`
@@ -22,7 +22,7 @@ func UsrViewFromDomain(usr *domain.Usr) UsrView {
 		return UsrView{}
 	}
 	return UsrView{
-		ID:        usr.ID.String(),
+		ID:        usr.ID,
 		Role:      usr.Role,
 		RoleTitle: usr.Role.String(),
 		Firstname: usr.Firstname,

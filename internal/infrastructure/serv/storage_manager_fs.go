@@ -2,6 +2,7 @@ package serv
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -30,6 +31,11 @@ func (stg *storageManagerFS) Put(ctx context.Context, c storage.StorageUploadCom
 		}
 	}()
 
+	// aseguramos que reader esté al inicio
+	if seeker, ok := c.File.(io.Seeker); ok {
+		_, _ = seeker.Seek(0, io.SeekStart)
+	}
+
 	r := io.LimitReader(c.File, int64(c.MaxSizeBytes)+1)
 	n, err := io.Copy(f, r)
 	if err != nil {
@@ -40,6 +46,7 @@ func (stg *storageManagerFS) Put(ctx context.Context, c storage.StorageUploadCom
 		err = storage.ErrFileTooLarge
 	}
 
+	fmt.Printf("uploaded file %s size %d\n", fname, n)
 	return uint64(n), err
 }
 

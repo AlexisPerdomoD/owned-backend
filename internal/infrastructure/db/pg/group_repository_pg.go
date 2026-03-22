@@ -16,6 +16,7 @@ import (
 const getGroupQuery string = `
 SELECT 
 	g.id,
+	g.usr_id,
 	g.name,
 	g.description,
 	g.created_at,
@@ -25,20 +26,23 @@ FROM fs.groups g`
 const insertGroupQuery string = `
 INSERT INTO fs.groups(
 	id,
+	usr_id,
 	name,
 	description,
 	created_at,
 	updated_at
-) VALUES ($1, $2, $3, $4, $5)`
+) VALUES ($1, $2, $3, $4, $5, $6)`
 
 const updateGroupQuery string = `
 UPDATE fs.groups SET
-	name = $1, 
-	description = $2
-WHERE id=$3`
+	usr_id = $1,
+	name = $2, 
+	description = $3
+WHERE id=$4`
 
 type groupRow struct {
 	ID          uuid.UUID `db:"id"`
+	UsrID       uuid.UUID `db:"usr_id"`
 	Name        string    `db:"name"`
 	Description string    `db:"description"`
 	CreatedAt   time.Time `db:"created_at"`
@@ -48,6 +52,7 @@ type groupRow struct {
 func (r *groupRow) ToDomain() domain.Group {
 	return domain.Group{
 		ID:          r.ID,
+		UsrID:       r.UsrID,
 		Name:        r.Name,
 		Description: r.Description,
 		CreatedAt:   r.CreatedAt,
@@ -109,6 +114,22 @@ func (r *groupRepository) GetByIDs(ctx context.Context, ids []domain.GroupID) (m
 }
 
 func (r *groupRepository) GetByUsr(ctx context.Context, usrID domain.UsrID) ([]domain.Group, error) {
+	q := fmt.Sprintf("%s\nWHERE g.usr_id=$1", getGroupQuery)
+	rows, err := r.db.QueryxContext(ctx, q, usrID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer safeClose(ctx, rows)
+	res, err := readSlice[domain.Group, groupRow](rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (r *groupRepository) GetByUsrAssigned(ctx context.Context, usrID domain.UsrID) ([]domain.Group, error) {
 	q := fmt.Sprintf("%s\nINNER JOIN fs.group_usrs gu ON gu.group_id = g.id\nWHERE gu.usr_id=$1", getGroupQuery)
 	rows, err := r.db.QueryxContext(ctx, q, usrID)
 	if err != nil {
@@ -132,6 +153,7 @@ func (r *groupRepository) Create(ctx context.Context, d *domain.Group) error {
 	now := time.Now().UTC()
 	_, err := r.db.ExecContext(ctx, insertGroupQuery,
 		d.ID,
+		d.UsrID,
 		d.Name,
 		d.Description,
 		now,
@@ -150,7 +172,7 @@ func (r *groupRepository) Update(ctx context.Context, d *domain.Group) error {
 		return ErrInvalidArgument
 	}
 
-	res, err := r.db.ExecContext(ctx, updateGroupQuery, d.Name, d.Description, d.ID)
+	res, err := r.db.ExecContext(ctx, updateGroupQuery, d.UsrID, d.Name, d.Description, d.ID)
 	if err != nil {
 		return err
 	}

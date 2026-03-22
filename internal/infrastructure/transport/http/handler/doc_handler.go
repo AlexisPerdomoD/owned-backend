@@ -39,6 +39,11 @@ func (h *DocHandler) CreateDocHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := dto.Validate(); err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
 	defer func() {
 		if dto.File != nil {
 			_ = dto.File.Close()

@@ -43,6 +43,7 @@ type (
 	NodeID = uuid.UUID
 	Node   struct {
 		ID          NodeID
+		UsrID       UsrID
 		Name        string
 		Description string
 		Path        NodePath
@@ -61,7 +62,7 @@ type (
 	NodeComment   struct {
 		ID        NodeCommentID
 		NodeID    NodeID
-		UsrID    UsrID
+		UsrID     UsrID
 		Content   string
 		CreatedAt time.Time
 		UpdatedAt time.Time

@@ -31,7 +31,7 @@ func (uc *GetRootNodesUseCase) Execute(ctx context.Context, usrID domain.UsrID) 
 		return uc.nodeRepository.GetRoot(ctx)
 
 	case domain.LimitedUsrRole, domain.NormalUsrRole:
-		groups, err := uc.groupRepository.GetByUsr(ctx, usr.ID)
+		groups, err := uc.groupRepository.GetByUsrAssigned(ctx, usr.ID)
 		if err != nil {
 			return nil, err
 		}

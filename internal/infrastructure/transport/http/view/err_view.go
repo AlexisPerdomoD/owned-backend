@@ -32,7 +32,7 @@ func ValidationError(err validator.ValidationErrors) *ErrView {
 }
 
 func AppError(err *apperror.AppError) *ErrView {
-	switch err {
+	switch err.Kind {
 	case apperror.ErrNotFoundInstance:
 		return &ErrView{
 			Code:    http.StatusNotFound,

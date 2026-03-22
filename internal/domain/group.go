@@ -14,6 +14,7 @@ type GroupID = uuid.UUID
 // Group represents a identifier to be tag to a Folder or file in the system and be associated with a user(s)
 type Group struct {
 	ID          GroupID
+	UsrID       UsrID
 	Name        string
 	Description string
 	CreatedAt   time.Time
@@ -25,7 +26,21 @@ type GroupUsrAccess string
 const (
 	GroupReadOnlyAccess GroupUsrAccess = "read_only_access"
 	GroupWriteAccess    GroupUsrAccess = "write_access"
+	GroupOwnerAccess    GroupUsrAccess = "owner_access"
 )
+
+func (a GroupUsrAccess) String() string {
+	switch a {
+	case GroupReadOnlyAccess:
+		return "Read Only Access"
+	case GroupWriteAccess:
+		return "Modify Access"
+	case GroupOwnerAccess:
+		return "Owner Access"
+	default:
+		return "Unknown Access"
+	}
+}
 
 var ErrNoAccess = errors.New("no access")
 
@@ -59,8 +74,10 @@ type GroupRepository interface {
 	GetByID(ctx context.Context, id GroupID) (*Group, error)
 	// GetByIDs returns groups by its identifiers
 	GetByIDs(ctx context.Context, ids []GroupID) (map[GroupID]*Group, error)
-	// GetByUsr returns a list of groups attached to a user and their access
+	// GetByUsr returns a list of groups where user is the owner
 	GetByUsr(ctx context.Context, usrID UsrID) ([]Group, error)
+	// GetByUsrAssigned returns a list of groups attached to a user and their access
+	GetByUsrAssigned(ctx context.Context, usrID UsrID) ([]Group, error)
 	// Create a new group in the system
 	// Returns an error if nil data is provided
 	Create(ctx context.Context, d *Group) error
@@ -77,7 +94,7 @@ type GroupUsrRepository interface {
 	GetGroupAccess(ctx context.Context, usrID UsrID, groupID GroupID) (GroupUsrAccess, error)
 	// HasNodeAccess validate the access to specific node based on group usr assigment, if no access is found it returns ErrNoAccess
 	HasAccess(ctx context.Context, usrID UsrID, path NodePath, access GroupUsrAccess) error
-	// GetByUsr returns the access of a user to nodes
+	// GetByUsr returns groups where user is a member
 	GetByUsr(ctx context.Context, usrID UsrID) ([]GroupUsr, error)
 	// Upsert access to a groups for a users
 	// Returns an error if nil data is provided

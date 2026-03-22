@@ -31,12 +31,22 @@ SELECT EXISTS (
 	JOIN fs.nodes n_grant ON n_grant.id = gn.node_id 
 
 	WHERE gu.usr_id = $1 
-	AND n_grant.path @> $2 AND ( 
-		gu.access = $3 OR (
-			gu.access = 'write_access' 
-			AND $3 = 'read_only_access'
-		) 
-	)  
+	AND n_grant.path @> $2  
+	AND (
+		CASE gu.access
+			WHEN 'owner_access' THEN 3
+			WHEN 'write_access' THEN 2
+			WHEN 'read_only_access' THEN 1
+			ELSE 0 -- db invalid value case 
+		END
+		>=
+		CASE $3
+			WHEN 'owner_access' THEN 3
+			WHEN 'write_access' THEN 2
+			WHEN 'read_only_access' THEN 1
+			ELSE 4 -- invalid parameter case
+		END
+	)
 );`
 
 const upsertGroupUsrQuery = `

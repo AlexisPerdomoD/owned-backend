@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"path/filepath"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -92,22 +94,23 @@ func (uc *CreateDocUseCase) Execute(ctx context.Context, creatorID domain.UsrID,
 	if err != nil {
 		return nil, err
 	}
-
+	title := titleFromFilename(arg.Filename)
 	response := &CreateDocUseCaseResponse{
 		Node: &domain.Node{
 			ID:          nodeID,
+			UsrID:       usr.ID,
 			Type:        domain.FileNodeType,
 			Description: arg.Description,
-			Name:        arg.Title,
+			Name:        title,
 			Path:        folder.Path.NewChildPath(nodeID),
 		},
 		Doc: &domain.Doc{
 			ID:          docID,
 			NodeID:      nodeID,
 			MimeType:    arg.Mimetype,
-			Title:       arg.Title,
+			Title:       title,
+			Filename:    arg.Filename,
 			Description: arg.Description,
-			UsrID:       usr.ID,
 			SizeInBytes: size,
 		},
 	}
@@ -142,6 +145,14 @@ func (uc *CreateDocUseCase) saveDoc(ctx context.Context, response *CreateDocUseC
 	}
 
 	return err
+}
+
+// titleFromFilename returns a new filename with a timestamp appended to it
+func titleFromFilename(filename string) string {
+	ext := filepath.Ext(filename)
+	name := filename[:len(filename)-len(ext)]
+	timestamp := time.Now().Format("20060121T150405") // YYYYMMDDTHHMMSS
+	return name + "_" + timestamp
 }
 
 func NewCreateDocUseCase(

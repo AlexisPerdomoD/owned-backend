@@ -8,6 +8,7 @@ import (
 
 type NodeView struct {
 	ID          domain.NodeID   `json:"id"`
+	UsrID       domain.UsrID    `json:"usr_id"`
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
 	Type        domain.NodeType `json:"type"`
@@ -30,6 +31,7 @@ func FolderViewFromDomain(n *domain.Node, chldr []domain.Node) NodeView {
 
 	return NodeView{
 		ID:          n.ID,
+		UsrID:       n.UsrID,
 		Name:        n.Name,
 		Description: n.Description,
 		Type:        n.Type,
@@ -47,6 +49,7 @@ func FileViewFromDomain(n *domain.Node, doc *domain.Doc) NodeView {
 	docView := DocViewFromDomain(doc)
 	return NodeView{
 		ID:          n.ID,
+		UsrID:       n.UsrID,
 		Name:        n.Name,
 		Description: n.Description,
 		Type:        n.Type,

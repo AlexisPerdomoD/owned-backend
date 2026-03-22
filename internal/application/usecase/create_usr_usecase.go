@@ -75,6 +75,7 @@ func (uc *CreateUsrUseCase) Execute(
 	usrNodeRoot := &domain.Node{
 		ID:          usrNodeRootID,
 		Name:        fmt.Sprintf("%s_usr_root_folder", usr.ID),
+		UsrID:       usr.ID,
 		Description: "Auto generated root node for particular user.",
 		Type:        domain.FolderNodeType,
 		Path:        domain.NodePathUsrRoot.NewChildPath(usr.ID),
@@ -82,6 +83,7 @@ func (uc *CreateUsrUseCase) Execute(
 
 	usrRootGroup := &domain.Group{
 		ID:          usrGroupID,
+		UsrID:       usr.ID,
 		Name:        fmt.Sprintf("%s_group", usr.ID),
 		Description: "Auto generated group for particular user.",
 	}
@@ -95,7 +97,7 @@ func (uc *CreateUsrUseCase) Execute(
 	usrGroups.Add(domain.UpsertGroupUsr{
 		GroupID: usrRootGroup.ID,
 		UsrID:   usr.ID,
-		Access:  domain.GroupWriteAccess,
+		Access:  domain.GroupOwnerAccess,
 	})
 
 	if len(args.Access) > 0 {

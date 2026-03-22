@@ -2,18 +2,30 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
+
+	"github.com/google/uuid"
 
 	"ownned/internal/domain"
 	"ownned/internal/infrastructure/config"
 	"ownned/internal/infrastructure/db/pg"
-
-	"github.com/google/uuid"
 )
 
 func main() {
+	uname := flag.String("usrname", "", "Username of the user to create application root for")
+
+	flag.Parse()
+
+	if *uname == "" {
+		fmt.Fprintln(os.Stderr, "error: -usrname is required")
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	cfg := config.LoadEnvConfig()
 	db, err := pg.NewDB(
 		cfg.PgDB,
@@ -24,35 +36,53 @@ func main() {
 		cfg.PgSsl,
 	)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "error: failed to connect to database")
+		os.Exit(1)
 	}
 
 	if err := pg.MigrateUp(db.DB); err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "error: failed to migrate database")
+		os.Exit(1)
 	}
 
-	rootusrID, err := uuid.NewV7()
+	usr, err := pg.NewUsrRepository(db).GetByUsername(context.Background(), *uname)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "error: failed to get user")
+		os.Exit(1)
 	}
 
-	rootusrGroupID, err := uuid.NewV7()
+	if usr == nil {
+		fmt.Fprintln(os.Stderr, "error: user not found")
+		os.Exit(1)
+	}
+
+	rootNodeUsrID, err := uuid.NewV7()
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "error: failed to generate uuid")
+		os.Exit(1)
 	}
 
-	rootsharedID, err := uuid.NewV7()
+	rootUsrGroupID, err := uuid.NewV7()
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "error: failed to generate uuid")
+		os.Exit(1)
 	}
 
-	rootsharedGroupID, err := uuid.NewV7()
+	rootNodeSharedID, err := uuid.NewV7()
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "error: failed to generate uuid")
+		os.Exit(1)
 	}
 
-	rootusr := domain.Node{
-		ID:          rootusrID,
+	rootSharedGroupID, err := uuid.NewV7()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error: failed to generate uuid")
+		os.Exit(1)
+	}
+
+	rootNodeUsr := domain.Node{
+		ID:          rootNodeUsrID,
+		UsrID:       usr.ID,
 		Name:        domain.NodePathUsrRoot.String(),
 		Description: "Root folder to contain all users root folders.",
 		Type:        domain.FolderNodeType,
@@ -60,18 +90,20 @@ func main() {
 	}
 
 	rootusrGroup := domain.Group{
-		ID:          rootusrGroupID,
+		ID:          rootUsrGroupID,
+		UsrID:       usr.ID,
 		Name:        "Root group for usrs root folder",
 		Description: "Root group to contain all users root groups.",
 	}
 
 	rootusrGroupNode := domain.UpsertGroupNode{
-		GroupID: rootusrGroupID,
-		NodeID:  rootusrID,
+		GroupID: rootUsrGroupID,
+		NodeID:  rootNodeUsrID,
 	}
 
-	rootshared := domain.Node{
-		ID:          rootsharedID,
+	rootNodeShared := domain.Node{
+		ID:          rootNodeSharedID,
+		UsrID:       usr.ID,
 		Name:        domain.NodePathSharedRoot.String(),
 		Description: "Root folder to contain all shared folders.",
 		Type:        domain.FolderNodeType,
@@ -79,21 +111,22 @@ func main() {
 	}
 
 	rootsharedGroup := domain.Group{
-		ID:          rootsharedGroupID,
+		ID:          rootSharedGroupID,
+		UsrID:       usr.ID,
 		Name:        "Root group shared root folder",
 		Description: "Root group to contain all shared root groups.",
 	}
 
 	rootsharedGroupNode := domain.UpsertGroupNode{
-		GroupID: rootsharedGroupID,
-		NodeID:  rootsharedID,
+		GroupID: rootSharedGroupID,
+		NodeID:  rootNodeSharedID,
 	}
 
 	uowFactory := pg.NewUnitOfWorkFactory(db, slog.Default(), time.Second*30)
 
 	ctx := context.Background()
 	err = uowFactory.Do(ctx, func(tx domain.UnitOfWork) error {
-		if err := tx.NodeRepository().Create(tx.Ctx(), &rootusr); err != nil {
+		if err := tx.NodeRepository().Create(tx.Ctx(), &rootNodeUsr); err != nil {
 			return err
 		}
 
@@ -105,7 +138,7 @@ func main() {
 			return err
 		}
 
-		if err := tx.NodeRepository().Create(tx.Ctx(), &rootshared); err != nil {
+		if err := tx.NodeRepository().Create(tx.Ctx(), &rootNodeShared); err != nil {
 			return err
 		}
 
@@ -120,11 +153,12 @@ func main() {
 		return nil
 	})
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "\nerror: failed to create folders roots err=%+v", err)
+		os.Exit(1)
 	}
 
 	fmt.Printf("Folders roots created successfully, sumary:\n")
-	for _, node := range []*domain.Node{&rootusr, &rootshared} {
+	for _, node := range []*domain.Node{&rootNodeUsr, &rootNodeShared} {
 		fmt.Printf("\nID: %s\nName: %s\nDescription: %s\nPath: %s\nType: %s\nCreatedAt: %s\nUpdatedAt: %s\n",
 			node.ID,
 			node.Name,

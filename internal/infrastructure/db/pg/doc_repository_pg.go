@@ -7,18 +7,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
-
-	"github.com/jmoiron/sqlx"
 )
 
 const getDocQuery string = `
 SELECT 
 	d.id,
 	d.node_id,
-	d.usr_id,
 	d.title,
+	d.filename,
 	d.description,
 	d.mime_type,
 	d.size_in_bytes,
@@ -30,8 +29,8 @@ const insertDocQuery string = `
 INSERT INTO fs.docs (
 	id,
 	node_id,
-	usr_id,
 	title,
+	filename,
 	description,
 	mime_type,
 	size_in_bytes,
@@ -42,8 +41,8 @@ INSERT INTO fs.docs (
 type docRow struct {
 	ID          domain.DocID  `db:"id"`
 	NodeID      domain.NodeID `db:"node_id"`
-	UsrID       domain.UsrID  `db:"usr_id"`
 	Title       string        `db:"title"`
+	Filename    string        `db:"filename"`
 	Description string        `db:"description"`
 	MimeType    string        `db:"mime_type"`
 	SizeInBytes int64         `db:"size_in_bytes"`
@@ -55,8 +54,8 @@ func (r *docRow) ToDomain() domain.Doc {
 	return domain.Doc{
 		ID:          r.ID,
 		NodeID:      r.NodeID,
-		UsrID:       r.UsrID,
 		Title:       r.Title,
+		Filename:    r.Filename,
 		Description: r.Description,
 		MimeType:    r.MimeType,
 		SizeInBytes: uint64(r.SizeInBytes),
@@ -124,8 +123,8 @@ func (r *docRepository) Create(ctx context.Context, d *domain.Doc) error {
 	_, err := r.db.ExecContext(ctx, insertDocQuery,
 		d.ID,
 		d.NodeID,
-		d.UsrID,
 		d.Title,
+		d.Filename,
 		d.Description,
 		d.MimeType,
 		d.SizeInBytes,

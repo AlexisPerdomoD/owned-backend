@@ -59,12 +59,14 @@ FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
 -- ============================
 CREATE TABLE fs.groups (
     id           UUID,
+    usr_id       UUID NOT NULL,
     name         text NOT NULL,
     description  text,
     created_at   timestamptz NOT NULL DEFAULT now(),
     updated_at   timestamptz NOT NULL DEFAULT now(),
 
-    CONSTRAINT groups_pk PRIMARY KEY (id)
+    CONSTRAINT groups_pk PRIMARY KEY (id),
+    CONSTRAINT groups_usr_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER trg_groups_updated_at
@@ -83,7 +85,11 @@ CREATE TABLE fs.group_usrs (
     CONSTRAINT group_usrs_group_fk FOREIGN KEY (group_id) REFERENCES fs.groups(id) ON DELETE CASCADE,
     CONSTRAINT group_usrs_user_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE,
     CONSTRAINT group_usrs_pk PRIMARY KEY (group_id, usr_id),
-    CONSTRAINT group_usrs_access_check CHECK (access IN ('read_only_access', 'write_access'))
+    CONSTRAINT group_usrs_access_check CHECK (access IN (
+        'read_only_access', 
+        'write_access', 
+        'owner_access')
+    )
 );
 
 CREATE INDEX idx_group_usrs_user
@@ -94,6 +100,7 @@ CREATE INDEX idx_group_usrs_user
 -- ============================
 CREATE TABLE fs.nodes (
     id           UUID,
+    usr_id       UUID NOT NULL,
     name         text NOT NULL,
     description  text,
     path         ltree NOT NULL,
@@ -102,6 +109,7 @@ CREATE TABLE fs.nodes (
     updated_at   timestamptz NOT NULL DEFAULT now(),
 
     CONSTRAINT nodes_pk PRIMARY KEY (id),
+    CONSTRAINT nodes_usr_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE,
     CONSTRAINT nodes_type_check CHECK (type IN ('folder', 'file'))
 );
 
@@ -169,8 +177,8 @@ CREATE INDEX idx_group_nodes_group
 CREATE TABLE fs.docs (
     id             UUID,
     node_id        UUID NOT NULL,
-    usr_id         UUID NOT NULL,
     title          text NOT NULL,
+    filename       text NOT NULL,
     description    text,
     mime_type      text NOT NULL,
     size_in_bytes  bigint NOT NULL,
@@ -180,10 +188,12 @@ CREATE TABLE fs.docs (
     CONSTRAINT docs_pk PRIMARY KEY (id),
     CONSTRAINT docs_node_id_ux UNIQUE (node_id),
     CONSTRAINT docs_size_in_bytes_check CHECK (size_in_bytes >= 0),
-    CONSTRAINT docs_node_fk FOREIGN KEY (node_id) REFERENCES fs.nodes(id) ON DELETE CASCADE,
-    CONSTRAINT docs_usr_fk  FOREIGN KEY (usr_id) REFERENCES fs.usrs(id)
+    CONSTRAINT docs_node_fk FOREIGN KEY (node_id) REFERENCES fs.nodes(id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER trg_docs_updated_at
 BEFORE UPDATE ON fs.docs
 FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
+
+CREATE INDEX idx_docs_node ON fs.docs(node_id);
+CREATE INDEX idx_docs_mime_type ON fs.docs(mime_type);

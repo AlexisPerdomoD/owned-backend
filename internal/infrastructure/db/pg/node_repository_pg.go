@@ -17,6 +17,7 @@ import (
 const getNodeQuery string = `
 SELECT
 	n.id,
+	n.usr_id,
 	n.name,
 	n.description,
 	n.path,
@@ -28,6 +29,7 @@ FROM fs.nodes n`
 const getNodeAttachQuery string = `
 SELECT
 	n.id,
+	n.usr_id,
 	n.name,
 	n.description,
 	n.path,
@@ -41,18 +43,20 @@ INNER JOIN fs.group_nodes gn ON n.id=gn.node_id`
 const insertNodeQuery string = `
 INSERT INTO fs.nodes (
 	id,
+	usr_id,
 	name,
 	description,
 	path,
 	type,
 	created_at,
 	updated_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 const deleteNodeQuery string = `DELETE FROM nodes WHERE path <@ (SELECT path FROM nodes WHERE id = $1)`
 
 type nodeRow struct {
 	ID          domain.NodeID `db:"id"`
+	UsrID       domain.UsrID  `db:"usr_id"`
 	Name        string        `db:"name"`
 	Description string        `db:"description"`
 	Path        string        `db:"path"`
@@ -64,6 +68,7 @@ type nodeRow struct {
 func (r *nodeRow) ToDomain() domain.Node {
 	return domain.Node{
 		ID:          r.ID,
+		UsrID:       r.UsrID,
 		Name:        r.Name,
 		Description: r.Description,
 		Path:        domain.NodePath(r.Path),
@@ -169,7 +174,7 @@ func (r *nodeRepository) GetRootByGroups(ctx context.Context, groups []domain.Gr
 }
 
 func (r *nodeRepository) GetByGroup(ctx context.Context, groupID domain.GroupID) ([]domain.NodeGroupAttach, error) {
-	q := fmt.Sprintf("%s\nWHERE gn.group_id=$1", getNodeAttachQuery)
+	q := fmt.Sprintf("%s\nINNER JOIN fs.group_nodes gn ON gn.node_id=n.id\nWHERE gn.group_id=$1", getNodeAttachQuery)
 	rows, err := r.db.QueryxContext(ctx, q, groupID)
 	if err != nil {
 		return nil, err
@@ -192,6 +197,7 @@ func (r *nodeRepository) Create(ctx context.Context, n *domain.Node) error {
 	updatedAt := createdAt
 	_, err := r.db.ExecContext(ctx, insertNodeQuery,
 		n.ID,
+		n.UsrID,
 		n.Name,
 		n.Description,
 		n.Path,
