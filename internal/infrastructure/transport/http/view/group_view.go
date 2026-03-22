@@ -3,8 +3,10 @@ package view
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"ownned/internal/application/dto"
 	"ownned/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type GroupView struct {
@@ -14,6 +16,12 @@ type GroupView struct {
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type PopulateGroupView struct {
+	GroupView
+	Nodes []NodeGroupAttachView `json:"nodes"`
+	Usrs  []UsrGroupAccessView  `json:"usrs"`
 }
 
 func GroupViewFromDomain(group *domain.Group) GroupView {
@@ -28,5 +36,27 @@ func GroupViewFromDomain(group *domain.Group) GroupView {
 		Description: group.Description,
 		CreatedAt:   group.CreatedAt,
 		UpdatedAt:   group.UpdatedAt,
+	}
+}
+
+func PopulateGroupViewFromDomain(p *dto.PopulateGroupDTO) PopulateGroupView {
+	if p == nil {
+		return PopulateGroupView{}
+	}
+
+	nodesView := make([]NodeGroupAttachView, len(p.Nodes))
+	for i, n := range p.Nodes {
+		nodesView[i] = NodeGroupAttachViewFromDomain(&n)
+	}
+
+	usrsView := make([]UsrGroupAccessView, len(p.Usrs))
+	for i, u := range p.Usrs {
+		usrsView[i] = UsrGroupAccessViewFromDomain(&u)
+	}
+
+	return PopulateGroupView{
+		GroupView: GroupViewFromDomain(&p.Group),
+		Nodes:     nodesView,
+		Usrs:      usrsView,
 	}
 }

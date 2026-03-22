@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"ownned/internal/application/dto"
 	"ownned/internal/application/usecase"
@@ -18,8 +19,69 @@ import (
 )
 
 type GroupHandler struct {
-	createGroup *usecase.CreateGroupUseCase
-	deleteGroup *usecase.DeleteGroupUseCase
+	getGroup      *usecase.GetGroupUseCase
+	paginateGroup *usecase.PaginateGroupUseCase
+	createGroup   *usecase.CreateGroupUseCase
+	deleteGroup   *usecase.DeleteGroupUseCase
+}
+
+func (h *GroupHandler) GetGroupHandler(w http.ResponseWriter, r *http.Request) {
+	groupID, err := uuid.Parse(chi.URLParam(r, "groupID"))
+	if err != nil {
+		detail := make(map[string]string)
+		detail["reason"] = "invalid group ID"
+		_ = encoder.WriteJSONError(w, apperror.ErrBadRequest(detail))
+		return
+	}
+
+	usrID, err := sctx.GetUsrID(r.Context())
+	if err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
+	group, err := h.getGroup.Execute(r.Context(), usrID, groupID)
+	if err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
+	_ = encoder.WriteJSON(w, http.StatusOK, view.PopulateGroupViewFromDomain(group))
+}
+
+func (h *GroupHandler) PaginateGroupHandler(w http.ResponseWriter, r *http.Request) {
+	usrID, err := sctx.GetUsrID(r.Context())
+	if err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
+	var search string
+	var limit, page uint
+	q := r.URL.Query()
+
+	if rawsearch := q.Get("search"); rawsearch != "" {
+		search = rawsearch
+	}
+
+	if rawlimit, err := strconv.ParseUint(q.Get("limit"), 10, 32); err == nil {
+		limit = uint(rawlimit)
+	}
+
+	if rawpage, err := strconv.ParseUint(q.Get("page"), 10, 32); err == nil {
+		page = uint(rawpage)
+	}
+
+	res, err := h.paginateGroup.Execute(
+		r.Context(), usrID, page, limit, search, false)
+	if err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
+	_ = encoder.WriteJSON(w,
+		http.StatusOK,
+		view.PaginationResultViewFromDomain(res, view.GroupViewFromDomain))
 }
 
 func (h *GroupHandler) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,8 +135,15 @@ func (h *GroupHandler) DeleteGroupHandler(w http.ResponseWriter, r *http.Request
 	_ = encoder.WriteJSON(w, http.StatusOK, view.GroupViewFromDomain(group))
 }
 
-func NewGroupHandler(cg *usecase.CreateGroupUseCase, dg *usecase.DeleteGroupUseCase) *GroupHandler {
+func NewGroupHandler(
+	gg *usecase.GetGroupUseCase,
+	pg *usecase.PaginateGroupUseCase,
+	cg *usecase.CreateGroupUseCase,
+	dg *usecase.DeleteGroupUseCase,
+) *GroupHandler {
 	helper.NotNilOrPanic(cg, "CreateGroupUseCase")
 	helper.NotNilOrPanic(dg, "DeleteGroupUseCase")
-	return &GroupHandler{cg, dg}
+	helper.NotNilOrPanic(pg, "PaginateGroupUseCase")
+	helper.NotNilOrPanic(gg, "GetGroupUseCase")
+	return &GroupHandler{gg, pg, cg, dg}
 }

@@ -71,13 +71,16 @@ func (c *UsrHandler) PaginateUsrHandler(w http.ResponseWriter, r *http.Request) 
 		role = &rawrole
 	}
 
-	res, err := c.paginateUsr.Execute(r.Context(), page, limit, search, role)
+	res, err := c.paginateUsr.Execute(
+		r.Context(), page, limit, search, role)
 	if err != nil {
 		_ = encoder.WriteJSONError(w, err)
 		return
 	}
 
-	_ = encoder.WriteJSON(w, http.StatusOK, view.PaginationResultViewFromDomain(res, view.UsrViewFromDomain))
+	_ = encoder.WriteJSON(w,
+		http.StatusOK,
+		view.PaginationResultViewFromDomain(res, view.UsrViewFromDomain))
 }
 
 func (c *UsrHandler) CreateUsrHandler(w http.ResponseWriter, r *http.Request) {

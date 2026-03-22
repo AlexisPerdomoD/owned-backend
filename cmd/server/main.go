@@ -18,30 +18,52 @@ import (
 	"ownned/internal/infrastructure/transport/http/middleware"
 )
 
-func logRoutes(r chi.Router, l *slog.Logger) {
-	for idx, route := range r.Routes() {
-		l.Info("registered route", "idx", idx+1, "path", route.Pattern)
-		if route.SubRoutes == nil {
-			continue
-		}
+func logRoutes(r chi.Router) {
+	methodColors := map[string]string{
+		"GET":    "\033[32m", // verde
+		"POST":   "\033[34m", // azul
+		"PUT":    "\033[33m", // amarillo
+		"PATCH":  "\033[33m", // amarillo
+		"DELETE": "\033[31m", // rojo
+	}
 
-		if len(route.SubRoutes.Routes()) == 0 {
-			continue
-		}
+	const (
+		reset = "\033[0m"
+		bold  = "\033[1m"
+	)
 
-		for subIdx, subRoute := range route.SubRoutes.Routes() {
-			l.Info("registered sub route",
-				"idx", fmt.Sprintf("%d.%d", idx+1, subIdx+1),
-				"path", fmt.Sprintf("%s%s",
-					strings.TrimSuffix(
-						route.Pattern,
-						"/*",
-					),
-					subRoute.Pattern,
-				),
-			)
-		}
+	type routeEntry struct {
+		methods []string
+		path    string
+	}
+	grouped := make(map[string]*routeEntry)
+	order := []string{}
 
+	_ = chi.Walk(r, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		if _, exists := grouped[route]; !exists {
+			grouped[route] = &routeEntry{path: route}
+			order = append(order, route)
+		}
+		grouped[route].methods = append(grouped[route].methods, method)
+		return nil
+	})
+
+	fmt.Println(bold + "registered routes:" + reset)
+	for idx, path := range order {
+		entry := grouped[path]
+		coloredMethods := make([]string, len(entry.methods))
+		for i, m := range entry.methods {
+			color, ok := methodColors[m]
+			if !ok {
+				color = "\033[37m"
+			}
+			coloredMethods[i] = color + bold + m + reset
+		}
+		fmt.Printf("  %2d. %s%-45s%s %s\n",
+			idx+1,
+			bold, entry.path, reset,
+			strings.Join(coloredMethods, " "),
+		)
 	}
 }
 
@@ -98,26 +120,43 @@ func main() {
 	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
 	// GROUPS
+	getGroup := usecase.
+		NewGetGroupUseCase(
+			usrRepository,
+			nodeRepository,
+			groupRepository,
+			groupUsrRepository)
+	paginateGroup := usecase.
+		NewPaginateGroupUseCase(
+			usrRepository,
+			groupRepository)
 	createGroup := usecase.
 		NewCreateGroupUseCase(
 			usrRepository,
 			unitOfWorkFactory)
-
 	deleteGroup := usecase.
 		NewDeleteGroupUseCase(
 			usrRepository,
-			groupRepository)
+			groupRepository,
+			groupUsrRepository)
 
 	// GROUPS ROUTES
 	groupHandler := handler.
 		NewGroupHandler(
+			getGroup,
+			paginateGroup,
 			createGroup,
 			deleteGroup)
-
 	groupR := chi.NewRouter()
 
 	groupR.Post("/", authmiddleware.
 		IsAuthenticated(groupHandler.CreateGroupHandler))
+
+	groupR.Get("/{groupID}", authmiddleware.
+		IsAuthenticated(groupHandler.GetGroupHandler))
+
+	groupR.Get("/paginate", authmiddleware.
+		IsAuthenticated(groupHandler.PaginateGroupHandler))
 
 	groupR.Delete("/{groupID}", authmiddleware.
 		IsAuthenticated(groupHandler.DeleteGroupHandler))
@@ -158,7 +197,7 @@ func main() {
 	usrR.Get("/paginate", authmiddleware.
 		IsAuthenticated(usrHandler.PaginateUsrHandler))
 	usrR.Post("/login", usrHandler.LoginUsrHandler)
-	usrR.Post("/logout", usrHandler.LogoutUsrHandler)
+	usrR.Delete("/logout", usrHandler.LogoutUsrHandler)
 
 	// NODES
 	getRoot := usecase.
@@ -272,7 +311,7 @@ func main() {
 	r.Mount("/api/v1/nodes", nodeR)
 	r.Mount("/api/v1/comments", nodeCommentR)
 	r.Mount("/api/v1/docs", docR)
-	logRoutes(r, l)
+	logRoutes(r)
 
 	l.Info("server starting at:", "port", cfg.Port)
 

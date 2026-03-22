@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
+	"ownned/internal/application/auth"
 	"ownned/pkg/apperror"
 )
 
@@ -104,6 +105,16 @@ func Err(err error) *ErrView {
 	if err == nil {
 		eLog.Warn("empty error provided", "stack", debug.Stack())
 		return &ErrView{}
+	}
+
+	if errors.Is(err, auth.ErrExpiredToken) || errors.Is(err, auth.ErrInvalidToken) {
+		detail := make(map[string]string)
+		detail["reason"] = err.Error()
+		return &ErrView{
+			Code:    http.StatusUnauthorized,
+			Message: "invalid credentials",
+			Detail:  detail,
+		}
 	}
 
 	var appErr *apperror.AppError

@@ -17,6 +17,13 @@ type UsrView struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 }
 
+type UsrGroupAccessView struct {
+	UsrView
+	Access      domain.GroupUsrAccess `json:"access"`
+	AccessTitle string                `json:"access_title"`
+	AssignDate  time.Time             `json:"assign_date"`
+}
+
 func UsrViewFromDomain(usr *domain.Usr) UsrView {
 	if usr == nil {
 		return UsrView{}
@@ -30,5 +37,17 @@ func UsrViewFromDomain(usr *domain.Usr) UsrView {
 		Username:  usr.Username,
 		CreatedAt: usr.CreatedAt,
 		UpdatedAt: usr.UpdatedAt,
+	}
+}
+
+func UsrGroupAccessViewFromDomain(usr *domain.UsrGroupAccess) UsrGroupAccessView {
+	if usr == nil {
+		return UsrGroupAccessView{}
+	}
+	return UsrGroupAccessView{
+		UsrView:     UsrViewFromDomain(&usr.Usr),
+		Access:      usr.Access,
+		AccessTitle: usr.Access.String(),
+		AssignDate:  usr.AssignDate,
 	}
 }

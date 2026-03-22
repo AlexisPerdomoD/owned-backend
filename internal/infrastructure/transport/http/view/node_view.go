@@ -19,6 +19,27 @@ type NodeView struct {
 	Doc         *DocView        `json:"doc,omitempty"`
 }
 
+type NodeGroupAttachView struct {
+	NodeView
+	AssignDate time.Time `json:"assign_date"`
+}
+
+func NodeViewFromDomain(n *domain.Node) NodeView {
+	if n == nil {
+		return NodeView{}
+	}
+	return NodeView{
+		ID:          n.ID,
+		UsrID:       n.UsrID,
+		Name:        n.Name,
+		Description: n.Description,
+		Type:        n.Type,
+		Path:        n.Path,
+		CreatedAt:   n.CreatedAt,
+		UpdatedAt:   n.UpdatedAt,
+	}
+}
+
 func FolderViewFromDomain(n *domain.Node, chldr []domain.Node) NodeView {
 	if n == nil {
 		return NodeView{}
@@ -57,6 +78,16 @@ func FileViewFromDomain(n *domain.Node, doc *domain.Doc) NodeView {
 		CreatedAt:   n.CreatedAt,
 		UpdatedAt:   n.UpdatedAt,
 		Doc:         &docView,
+	}
+}
+
+func NodeGroupAttachViewFromDomain(n *domain.NodeGroupAttach) NodeGroupAttachView {
+	if n == nil {
+		return NodeGroupAttachView{}
+	}
+	return NodeGroupAttachView{
+		NodeView:   NodeViewFromDomain(&n.Node),
+		AssignDate: n.AssignDate,
 	}
 }
 
