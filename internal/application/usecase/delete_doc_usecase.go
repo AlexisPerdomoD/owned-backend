@@ -31,6 +31,12 @@ func (uc *DeleteDocUseCase) Execute(ctx context.Context, usrID domain.UsrID, doc
 		return nil, apperror.ErrUnauthenticated(nil)
 	}
 
+	if !usr.Role.CanDeleteDoc() {
+		detail := make(map[string]string)
+		detail["reason"] = "User can no do this action."
+		return nil, apperror.ErrForbidden(detail)
+	}
+
 	doc, err := uc.docRepository.GetByID(ctx, docID)
 	if err != nil {
 		return nil, err

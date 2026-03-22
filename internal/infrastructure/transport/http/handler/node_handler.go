@@ -105,6 +105,11 @@ func (c *NodeHandler) CreateFolderHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if err := body.Validate(); err != nil {
+		_ = encoder.WriteJSONError(w, err)
+		return
+	}
+
 	session, err := sctx.GetSession(r.Context())
 	if err != nil {
 		_ = encoder.WriteJSONError(w, err)

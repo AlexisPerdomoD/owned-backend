@@ -41,6 +41,46 @@ func (r UsrRole) IsValid() bool {
 	}
 }
 
+func (r UsrRole) CanCreateUsr() bool {
+	return r == SuperUsrRole
+}
+
+func (r UsrRole) CanDeleteUsr() bool {
+	return r == SuperUsrRole
+}
+
+func (r UsrRole) CanCreateNode() bool {
+	return r == SuperUsrRole || r == NormalUsrRole
+}
+
+func (r UsrRole) CanDeleteNode() bool {
+	return r == SuperUsrRole || r == NormalUsrRole
+}
+
+func (r UsrRole) CanCreateDoc() bool {
+	return r == SuperUsrRole || r == NormalUsrRole
+}
+
+func (r UsrRole) CanDeleteDoc() bool {
+	return r == SuperUsrRole || r == NormalUsrRole
+}
+
+func (r UsrRole) CanCreateGroup() bool {
+	return r == SuperUsrRole || r == NormalUsrRole
+}
+
+func (r UsrRole) CanDeleteGroup() bool {
+	return r == SuperUsrRole || r == NormalUsrRole
+}
+
+func (r UsrRole) CanAssignGroup() bool {
+	return r == SuperUsrRole || r == NormalUsrRole
+}
+
+func (r UsrRole) CanUnAssignGroup() bool {
+	return r == SuperUsrRole || r == NormalUsrRole
+}
+
 type Usr struct {
 	ID        UsrID
 	Role      UsrRole

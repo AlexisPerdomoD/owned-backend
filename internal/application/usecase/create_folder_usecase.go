@@ -27,12 +27,10 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, creatorID domain.Usr
 		return nil, apperror.ErrUnauthenticated(nil)
 	}
 
-	if usr.Role == domain.LimitedUsrRole {
-		return nil, apperror.ErrForbidden(nil)
-	}
-
-	if err := args.Validate(); err != nil {
-		return nil, err
+	if !usr.Role.CanCreateNode() {
+		detail := make(map[string]string)
+		detail["reason"] = "Usr can not do this action"
+		return nil, apperror.ErrForbidden(detail)
 	}
 
 	parentID, err := uuid.Parse(args.ParentID)
