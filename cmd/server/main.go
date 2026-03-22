@@ -97,6 +97,31 @@ func main() {
 	docRepository := pg.NewDocRepository(db)
 	unitOfWorkFactory := pg.NewUnitOfWorkFactory(db, l, time.Second*30)
 
+	// GROUPS
+	createGroup := usecase.
+		NewCreateGroupUseCase(
+			usrRepository,
+			unitOfWorkFactory)
+
+	deleteGroup := usecase.
+		NewDeleteGroupUseCase(
+			usrRepository,
+			groupRepository)
+
+	// GROUPS ROUTES
+	groupHandler := handler.
+		NewGroupHandler(
+			createGroup,
+			deleteGroup)
+
+	groupR := chi.NewRouter()
+
+	groupR.Post("/", authmiddleware.
+		IsAuthenticated(groupHandler.CreateGroupHandler))
+
+	groupR.Delete("/{groupID}", authmiddleware.
+		IsAuthenticated(groupHandler.DeleteGroupHandler))
+
 	// USERS
 	createUsr := usecase.
 		NewCreateUsrUseCase(
@@ -242,6 +267,7 @@ func main() {
 	// SERVER ROUTES
 
 	r := chi.NewRouter()
+	r.Mount("/api/v1/groups", groupR)
 	r.Mount("/api/v1/usrs", usrR)
 	r.Mount("/api/v1/nodes", nodeR)
 	r.Mount("/api/v1/comments", nodeCommentR)

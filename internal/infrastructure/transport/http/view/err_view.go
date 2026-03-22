@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/go-playground/validator/v10"
 
@@ -81,6 +82,12 @@ func AppError(err *apperror.AppError) *ErrView {
 			Message: "internal error",
 			Detail:  err.Detail,
 		}
+	case apperror.ErrNotImplementedInstance:
+		return &ErrView{
+			Code:    http.StatusNotImplemented,
+			Message: "not implemented yet :(",
+			Detail:  err.Detail,
+		}
 
 	default:
 		return &ErrView{
@@ -91,16 +98,21 @@ func AppError(err *apperror.AppError) *ErrView {
 	}
 }
 
-var errLogger = slog.With("error handler")
+var eLog = slog.With("error handler")
 
 func Err(err error) *ErrView {
 	if err == nil {
-		return nil
+		eLog.Warn("empty error provided", "stack", debug.Stack())
+		return &ErrView{}
 	}
 
 	var appErr *apperror.AppError
 	if errors.As(err, &appErr) {
-		return AppError(appErr)
+		view := AppError(appErr)
+		if view.Code >= 500 {
+			eLog.Error("error happened", "err", err, "stack", debug.Stack())
+		}
+		return view
 	}
 
 	var validationErrors validator.ValidationErrors
@@ -108,7 +120,7 @@ func Err(err error) *ErrView {
 		return ValidationError(validationErrors)
 	}
 
-	errLogger.Error("unexpected error happened", "error", err)
+	eLog.Error("unexpected error happened", "err", err, "stack", debug.Stack())
 
 	return &ErrView{
 		Code:    http.StatusInternalServerError,
