@@ -6,6 +6,8 @@ import (
 
 	"ownned/internal/application/auth"
 	"ownned/pkg/apperror"
+
+	"github.com/google/uuid"
 )
 
 // context keys for user session
@@ -24,6 +26,23 @@ func GetSession(ctx context.Context) (*auth.JWTAccessPayload, error) {
 	}
 
 	return session, nil
+}
+
+// GetUsrID returns the user ID from the session
+func GetUsrID(ctx context.Context) (uuid.UUID, error) {
+	session, err := GetSession(ctx)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	usrID, err := uuid.Parse(session.UsrID)
+	if err != nil {
+		detail := make(map[string]string)
+		detail["reason"] = "invalid user ID"
+		return uuid.Nil, apperror.ErrInternal(detail)
+	}
+
+	return usrID, nil
 }
 
 // SetSession sets the session in the context
