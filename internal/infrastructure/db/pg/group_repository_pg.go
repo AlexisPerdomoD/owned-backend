@@ -40,6 +40,8 @@ UPDATE fs.groups SET
 	description = $3
 WHERE id=$4`
 
+const deleteGroupQuery string = `DELETE FROM fs.groups WHERE id=$1`
+
 type groupRow struct {
 	ID          uuid.UUID `db:"id"`
 	UsrID       uuid.UUID `db:"usr_id"`
@@ -191,7 +193,8 @@ func (r *groupRepository) Update(ctx context.Context, d *domain.Group) error {
 }
 
 func (r *groupRepository) Delete(ctx context.Context, id domain.GroupID) error {
-	return apperror.ErrNotImplemented(nil)
+	_, err := r.db.ExecContext(ctx, deleteGroupQuery, id)
+	return err
 }
 
 func NewGroupRepository(db sqlx.ExtContext) domain.GroupRepository {
