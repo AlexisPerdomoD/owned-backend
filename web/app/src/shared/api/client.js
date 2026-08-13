@@ -1,3 +1,4 @@
+import { APP_MODE } from '../config/env'
 import {
     ApiAbortedError,
     ApiBadRequestError,
@@ -18,9 +19,17 @@ import {
  */
 export async function reqJSON(path, opts = {}) {
     const { headers, ...init } = opts
-    const r = await fetch(path, {
+    const baseApiURL = APP_MODE === 'local'
+        ? 'http://localhost:3000'
+        : undefined
+    const credentials = APP_MODE === 'local'
+        ? 'include'
+        : 'same-origin'
+    const url = new URL(path, baseApiURL)
+
+    const r = await fetch(url, {
         ...init,
-        credentials: 'same-origin',
+        credentials,
         headers: {
             'Content-type': 'application/json',
             ...headers
