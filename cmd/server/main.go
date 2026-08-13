@@ -5,10 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
 	"time"
-
-	"github.com/go-chi/chi/v5"
 
 	"ownned/internal/application/usecase"
 	"ownned/internal/infrastructure/config"
@@ -16,61 +13,11 @@ import (
 	"ownned/internal/infrastructure/srv"
 	"ownned/internal/infrastructure/transport/http/handler"
 	"ownned/internal/infrastructure/transport/http/middleware"
+	"ownned/pkg/http_log"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 )
-
-// TODO: move to other place shit
-func logRoutes(r chi.Router) {
-	methodColors := map[string]string{
-		"GET":    "\033[32m", // verde
-		"POST":   "\033[34m", // azul
-		"PUT":    "\033[33m", // amarillo
-		"PATCH":  "\033[33m", // amarillo
-		"DELETE": "\033[31m", // rojo
-	}
-
-	const (
-		reset = "\033[0m"
-		bold  = "\033[1m"
-	)
-
-	type routeEntry struct {
-		methods []string
-		path    string
-	}
-	grouped := make(map[string]*routeEntry)
-	order := []string{}
-
-	if err := chi.Walk(r,
-		func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-			if _, exists := grouped[route]; !exists {
-				grouped[route] = &routeEntry{path: route}
-				order = append(order, route)
-			}
-			grouped[route].methods = append(grouped[route].methods, method)
-			return nil
-		}); err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println(bold + "registered routes:" + reset)
-	for idx, path := range order {
-		entry := grouped[path]
-		coloredMethods := make([]string, len(entry.methods))
-		for i, m := range entry.methods {
-			color, ok := methodColors[m]
-			if !ok {
-				color = "\033[37m"
-			}
-			coloredMethods[i] = color + bold + m + reset
-		}
-		fmt.Printf("  %2d. %s%-45s%s %s\n",
-			idx+1,
-			bold, entry.path, reset,
-			strings.Join(coloredMethods, " "),
-		)
-	}
-}
 
 // START POINT BABY
 func main() {
@@ -263,6 +210,11 @@ func main() {
 			jwtManager)
 
 	// ROUTES
+	secure := cfg.Mode != "local"
+	sameSite := http.SameSiteStrictMode
+	if cfg.Mode == "local" {
+		sameSite = http.SameSiteLaxMode
+	}
 	usrH := handler.
 		NewUsrHandler(
 			loginUsr,
@@ -271,8 +223,8 @@ func main() {
 			getUsr,
 			paginateUsr,
 			handler.UsrHandlerConfig{
-				Secure:   cfg.Mode != "local",
-				SameSite: http.SameSiteLaxMode,
+				Secure:   secure,
+				SameSite: sameSite,
 			})
 	usrR := chi.NewRouter()
 	usrR.Get("/me", authM.
@@ -415,6 +367,21 @@ func main() {
 	// =========================================================================
 
 	r := chi.NewRouter()
+	if cfg.Mode == "local" {
+		// Basic CORS
+		// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
+		r.Use(cors.Handler(cors.Options{
+			// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
+			AllowedOrigins: []string{"http://localhost:5173"},
+			// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+			AllowedHeaders: []string{"Accept", "Content-Type"},
+			// ExposedHeaders:   []string{"Link"},
+			AllowCredentials: true,
+			MaxAge:           300, // Maximum value not ignored by any of major browsers
+		}))
+	}
+
 	// TODO: Add swagger doc here
 	r.Mount("/api/v1/groups", groupR)
 	// TODO: Add swagger doc here
@@ -429,16 +396,22 @@ func main() {
 	// =========================================================================
 	// SERVE WEB APP
 	// =========================================================================
+	if cfg.ServeWebApp {
+		// Static assets
+		// TODO: make this path a config option maybe
+		r.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("web/dist/assets"))))
 
-	// Static assets
-	r.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("web/dist/assets"))))
+		// SPA fallback
+		// TODO: make this path a config option maybe
+		r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "web/dist/index.html")
+		}))
+	}
 
-	// SPA fallback
-	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "web/dist/index.html")
-	}))
-
-	logRoutes(r)
-	lg.Info("server starting at:", "Mode", cfg.Mode, "port", cfg.Port)
+	http_log.ChiRouterLog(r)
+	lg.Info("server starting at:",
+		"Mode", cfg.Mode,
+		"port", cfg.Port,
+		"ServeWebApp", cfg.ServeWebApp)
 	_ = http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r)
 }

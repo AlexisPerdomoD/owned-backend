@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 func getenv(key, def string) string {
@@ -82,8 +83,9 @@ func getLocalStorageDir() string {
 // EnvConfig is the struct for environment variables.
 type EnvConfig struct {
 	// APPLICATION
-	Mode string
-	Port int
+	Mode        string
+	Port        int
+	ServeWebApp bool
 
 	// AUTH
 	SessionSecret string
@@ -113,8 +115,9 @@ type EnvConfig struct {
 
 func LoadEnvConfig() *EnvConfig {
 	return &EnvConfig{
-		Mode: getenv("MODE", "local"),
-		Port: getenvInt("PORT", 3000),
+		Mode:        getenv("MODE", "local"),
+		Port:        getenvInt("PORT", 3000),
+		ServeWebApp: strings.ToLower(getenv("SERVE_WEB_APP", "true")) == "true",
 
 		LocalStorageDir: getLocalStorageDir(),
 
