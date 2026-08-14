@@ -100,6 +100,13 @@ Types: `feat`, `refactor`, `fix`, `docs`, `test`, `chore`, `videcode`
 
 Commits must be atomic — each commit compiles independently and represents a single logical change.
 
+### Body / context description
+
+Add a body when it adds context (why, trade-offs, references). Keep it
+short — one paragraph or a few bullets — focused on WHY, not WHAT.
+
+Example: see `64f7d94`.
+
 ## Go Module
 
 - Module name: `ownned` (not `owned`)
