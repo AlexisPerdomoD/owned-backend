@@ -30,12 +30,16 @@ export default [
             solid
         },
         rules: {
+
             // Solid
             'solid/reactivity': 'warn',
-            'solid/no-destructure': 'off',
+            'solid/no-destructure': 'warn',
 
             // Base rules
             'no-console': 'warn',
+            // no global vars  allowed
+            'no-undef': 'warn',
+
             'no-unused-vars': [
                 'warn',
                 {
