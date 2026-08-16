@@ -1,4 +1,4 @@
-import { createEffect } from 'solid-js'
+import { createEffect, createSignal } from 'solid-js'
 
 import { Button, Input, toast } from '@/shared/ui'
 
@@ -8,6 +8,7 @@ export function LoginForm() {
     const { fields, issues, loading, setField, submit } = usePwdLogin()
     const onUsernameChange = e => setField('username', e.target.value)
     const onPasswordChange = e => setField('password', e.target.value)
+    const [showPassword, setShowPassword] = createSignal(false)
 
     const TOAST_CODE = 'LOGIN_FORM_GENERAL_ISSUES'
     createEffect(() => {
@@ -33,7 +34,6 @@ export function LoginForm() {
                     type="email"
                     autocomplete="email"
                 />
-
                 <Input
                     label="Password"
                     placeholder="**********"
@@ -41,14 +41,23 @@ export function LoginForm() {
                     onInput={onPasswordChange}
                     error={issues.password}
                     hint="Introduce your password"
-                    type="password"
+                    type={showPassword() ? 'text' : 'password'}
+                    class="flex-1"
                     autocomplete="current-password"
                     minlength={8}
+                    suffix={
+                        <Button
+                            type="button"
+                            class="w-12 shrink-0 rounded-sm"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowPassword(prev => !prev)}
+                            children={showPassword() ? 'Hide' : 'Show'}
+                        />
+
+                    }
                 />
 
-                {/* <Show when={issues.general}> */}
-                {/*     <p class="text-xs text-danger">{issues.general}</p> */}
-                {/* </Show> */}
 
                 <Button
                     type="submit"
