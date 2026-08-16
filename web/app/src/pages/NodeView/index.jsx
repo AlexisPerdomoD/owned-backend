@@ -1,12 +1,12 @@
 import { Show, createEffect, createSignal } from 'solid-js'
 
+import { apiDownloadDoc } from '@/entities/docs/api'
 import { CommentForm, CommentsList } from '@/features/comments/ui/CommentsList'
 import {
     useCreateComment,
     useDeleteComment,
     useGetComments
 } from '@/features/comments/usecase'
-import { apiDownloadDoc } from '@/entities/docs/api'
 import { DocCard, NodeList, UploadDropzone } from '@/features/node/ui'
 import {
     useCreateDoc,
@@ -19,30 +19,34 @@ import {
 import { Button, PageHeader, Spinner, Tabs, toast } from '@/shared/ui'
 import { useNavigate, useParams } from '@solidjs/router'
 
-function NodeOverview({ node, onEdit, onDelete }) {
+function NodeOverview(props) {
     return (
         <section class="flex flex-col items-center">
             <section class="max-w-md w-full">
                 <section class="mb-4 py-4">
                     <h1 class="text-2xl font-semibold text-center font-serif pb-2">
-                        {node.name}
+                        {props.node.name}
                     </h1>
                     <h3 class="text-sm text-center font-serif pb-2">
-                        {node.type === 'folder' ? 'Folder' : 'File'}
+                        {props.node.type === 'folder' ? 'Folder' : 'File'}
                     </h3>
-                    <p class="text-sm text-center">{node.description}</p>
-                    <p class="text-sm text-center">Created {node.created_at}</p>
-                    <Show when={node.updated_at !== node.created_at}>
+                    <p class="text-sm text-center">{props.node.description}</p>
+                    <p class="text-sm text-center">
+                        Created {props.node.created_at}
+                    </p>
+                    <Show
+                        when={props.node.updated_at !== props.node.created_at}
+                    >
                         <p class="text-sm text-center">
-                            Last updated {node.updated_at}
+                            Last updated {props.node.updated_at}
                         </p>
                     </Show>
                 </section>
                 <section class="flex justify-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={onEdit}>
+                    <Button variant="ghost" size="sm" onClick={props.onEdit}>
                         Edit
                     </Button>
-                    <Button variant="danger" size="sm" onClick={onDelete}>
+                    <Button variant="danger" size="sm" onClick={props.onDelete}>
                         Delete
                     </Button>
                 </section>
@@ -50,16 +54,23 @@ function NodeOverview({ node, onEdit, onDelete }) {
         </section>
     )
 }
-
-function NodeForm({ open, node, loading, onSubmit, onClose }) {
+/**
+ * @param {Object} props
+ * @param {boolean} props.open
+ * @param {import('@/entities/nodes').Node | null} props.node
+ * @param {(name: string, description: string) => void} props.onSubmit
+ * @param {() => void} props.onClose
+ * @param {boolean} props.loading
+ */
+function NodeForm(props) {
     const [name, setName] = createSignal('')
     const [description, setDescription] = createSignal('')
 
     createEffect(() => {
-        if (open && node) {
-            setName(node.name ?? '')
-            setDescription(node.description ?? '')
-        } else if (open) {
+        if (props.open && props.node) {
+            setName(props.node.name ?? '')
+            setDescription(props.node.description ?? '')
+        } else if (props.open) {
             setName('')
             setDescription('')
         }
@@ -67,77 +78,90 @@ function NodeForm({ open, node, loading, onSubmit, onClose }) {
 
     const handleSubmit = e => {
         e.preventDefault()
-        if (name().trim()) {
-            onSubmit?.(name().trim(), description().trim())
+        if (!name().trim() || !props.onSubmit) {
+            return
         }
+
+        props.onSubmit(name().trim(), description().trim())
     }
 
-    if (!open) return null
-
     return (
-        <div
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-            onClick={onClose}
-        >
-            <div
-                class="bg-[--color-surface] border border-[--color-border] rounded-[--radius-md] w-full max-w-md p-6"
-                onClick={e => e.stopPropagation()}
-            >
-                <h3 class="font-serif text-lg text-[--color-ink-dark] mb-4">
-                    {node ? 'Edit Node' : 'New Folder'}
-                </h3>
+        <>
+            {props.open && (
+                <div
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+                    onClick={e => props.onClose(e)}
+                >
+                    <div
+                        class="bg-surface border border-border rounded-md w-full max-w-md p-6"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <h3 class="font-serif text-lg text-ink-dark mb-4">
+                            {props.node ? 'Edit Node' : 'New Folder'}
+                        </h3>
 
-                <form onSubmit={handleSubmit} class="flex flex-col gap-4">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-[--color-muted] uppercase tracking-wide">
-                            Name *
-                        </label>
-                        <input
-                            type="text"
-                            value={name()}
-                            onInput={e => setName(e.target.value)}
-                            maxLength={255}
-                            class="
+                        <form
+                            onSubmit={handleSubmit}
+                            class="flex flex-col gap-4"
+                        >
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs text-muted uppercase tracking-wide">
+                                    Name *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={name()}
+                                    onInput={e => setName(e.target.value)}
+                                    maxLength={255}
+                                    class="
                                 w-full font-sans font-light text-sm
-                                text-[--color-ink-dark]
-                                bg-[--color-bg] border border-[--color-border] rounded-xs
+                                text-ink-dark
+                                bg-bg border border-border rounded-xs
                                 px-3 py-2
-                                focus:outline-none focus:border-[--color-ink]
+                                focus:outline-none focus:border-ink
                             "
-                            required
-                        />
-                    </div>
+                                    required
+                                />
+                            </div>
 
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-[--color-muted] uppercase tracking-wide">
-                            Description
-                        </label>
-                        <textarea
-                            value={description()}
-                            onInput={e => setDescription(e.target.value)}
-                            rows={2}
-                            maxLength={255}
-                            class="
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs text-muted uppercase tracking-wide">
+                                    Description
+                                </label>
+                                <textarea
+                                    value={description()}
+                                    onInput={e =>
+                                        setDescription(e.target.value)
+                                    }
+                                    rows={2}
+                                    maxLength={255}
+                                    class="
                                 w-full font-sans font-light text-sm
-                                text-[--color-ink-dark]
-                                bg-[--color-bg] border border-[--color-border] rounded-xs
+                                text-ink-dark
+                                bg-bg border border-border rounded-xs
                                 px-3 py-2 resize-none
-                                focus:outline-none focus:border-[--color-ink]
+                                focus:outline-none focus:border-ink
                             "
-                        />
-                    </div>
+                                />
+                            </div>
 
-                    <div class="flex justify-end gap-2">
-                        <Button type="button" variant="ghost" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" loading={loading}>
-                            {node ? 'Update' : 'Create'}
-                        </Button>
+                            <div class="flex justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={props.onClose}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit" loading={props.loading}>
+                                    {props.node ? 'Update' : 'Create'}
+                                </Button>
+                            </div>
+                        </form>
                     </div>
-                </form>
-            </div>
-        </div>
+                </div>
+            )}
+        </>
     )
 }
 
@@ -229,8 +253,10 @@ export function NodeView() {
     const nodeData = () => node()
     const canEdit = () => nodeData()?.type === 'folder'
 
-    const folderChildren = () => nodeData()?.children?.filter(n => n.type === 'folder') ?? []
-    const fileChildren = () => nodeData()?.children?.filter(n => n.type === 'file') ?? []
+    const folderChildren = () =>
+        nodeData()?.children?.filter(n => n.type === 'folder') ?? []
+    const fileChildren = () =>
+        nodeData()?.children?.filter(n => n.type === 'file') ?? []
 
     return (
         <section class="flex flex-col p-6">
@@ -321,9 +347,7 @@ export function NodeView() {
                     when={nodeData()?.type === 'folder' && tab() === 'contents'}
                 >
                     <section class="mt-4">
-                        <h3 class="font-serif text-lg mb-2">
-                            Folders
-                        </h3>
+                        <h3 class="font-serif text-lg mb-2">Folders</h3>
                         <NodeList
                             nodes={folderChildren()}
                             loading={loading()}
@@ -386,4 +410,3 @@ export function NodeView() {
         </section>
     )
 }
-

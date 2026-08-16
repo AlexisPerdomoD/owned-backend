@@ -15,13 +15,17 @@ import { NodeView } from './pages/NodeView'
 import { ErrView, Toaster } from './shared/ui'
 import { Navbar } from './shared/ui/Navbar'
 
-function ProtectedLayout({ children }) {
+function ProtectedLayout(props) {
     return (
         <section class="flex flex-col h-screen">
-            <Navbar />
-            <main class="flex-1 overflow-y-auto bg-[--color-bg]">
-                {children}
-            </main>
+            <Navbar
+                navItems={[
+                    { path: '/nodes', label: 'Files', icon: '📁' },
+                    { path: '/groups', label: 'Groups', icon: '👥' },
+                    { path: '/usrs', label: 'Users', icon: '👤' }
+                ]}
+            />
+            <main class="flex-1 overflow-y-auto bg-bg">{props.children}</main>
         </section>
     )
 }
