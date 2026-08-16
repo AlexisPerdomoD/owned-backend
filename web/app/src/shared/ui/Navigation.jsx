@@ -18,30 +18,30 @@ import { For, Show } from 'solid-js'
  * @param {string} [props.class]
  * @returns {import('solid-js').JSX.Element}
  */
-export function Tabs({ items, active, onChange, class: cls = '' }) {
+export function Tabs(props) {
     return (
         <nav
-            class={`flex items-end gap-0 border-b border-[--color-border] ${cls}`}
+            class={`flex items-end gap-0 border-b border-[--color-border] ${props.class ?? ''}`}
             role="tablist"
         >
-            <For each={items}>
+            <For each={props.items}>
                 {item => {
-                    const isActive = () => item.key === active
+                    const isActive = () => item.key === props.active
                     return (
                         <button
                             role="tab"
                             aria-selected={isActive()}
-                            onClick={() => onChange(item.key)}
+                            onClick={() => props.onChange(item.key)}
                             class={`
                                 inline-flex items-center gap-1.5
-                                px-4 py-2.5 text-[--text-sm] font-[--font-sans]
+                                px-4 py-2.5 text-sm font-sans
                                 border-b-[1.5px] -mb-px
                                 transition-colors duration-[--ease-base]
                                 cursor-pointer whitespace-nowrap
                                 ${
                                     isActive()
-                                        ? 'border-[--color-ink-dark] text-[--color-ink-dark] font-normal'
-                                        : 'border-transparent text-[--color-muted] hover:text-[--color-ink] font-light'
+                                        ? 'border-ink-dark text-ink-dark font-normal'
+                                        : 'border-transparent text-muted hover:text-ink font-light'
                                 }
                             `}
                         >
@@ -56,7 +56,7 @@ export function Tabs({ items, active, onChange, class: cls = '' }) {
                                     class={`
                                         inline-flex items-center justify-center
                                         min-w-4 h-4 px-1 rounded-full text-[10px]
-                                        ${isActive() ? 'bg-[--color-ink-dark] text-[--color-bg]' : 'bg-[--color-bg-2] text-[--color-muted]'}
+                                        ${isActive() ? 'bg-ink-dark text-bg' : 'bg-bg-2 text-muted'}
                                     `}
                                 >
                                     {item.count}
@@ -87,19 +87,19 @@ export function Tabs({ items, active, onChange, class: cls = '' }) {
  * @param {string} [props.class]
  * @returns {import('solid-js').JSX.Element}
  */
-export function Breadcrumb({ items, class: cls = '' }) {
+export function Breadcrumb(props) {
     return (
         <nav
             aria-label="Breadcrumb"
-            class={`flex items-center gap-1.5 flex-wrap ${cls}`}
+            class={`flex items-center gap-1.5 flex-wrap ${props.class ?? ''}`}
         >
-            <For each={items}>
+            <For each={props.items}>
                 {(item, index) => {
-                    const isLast = () => index() === items.length - 1
+                    const isLast = () => index() === props.items.length - 1
                     return (
                         <>
                             <Show when={index() > 0}>
-                                <span class="text-[--color-border] text-[--text-xs] select-none">
+                                <span class="text-border text-xs select-none">
                                     /
                                 </span>
                             </Show>
@@ -107,7 +107,7 @@ export function Breadcrumb({ items, class: cls = '' }) {
                                 when={!isLast() && (item.href || item.onClick)}
                                 fallback={
                                     <span
-                                        class="text-[--text-sm] text-[--color-ink-dark] font-normal"
+                                        class="text-sm text-ink-dark font-normal"
                                         aria-current={
                                             isLast() ? 'page' : undefined
                                         }
@@ -119,16 +119,18 @@ export function Breadcrumb({ items, class: cls = '' }) {
                                 <a
                                     href={item.href ?? '#'}
                                     onClick={e => {
-                                        if (item.onClick) {
-                                            e.preventDefault()
-                                            item.onClick()
+                                        if (!item.onClick) {
+                                            return
                                         }
+
+                                        e.preventDefault()
+                                        item.onClick()
                                     }}
                                     class="
-                                        text-[--text-sm] text-[--color-muted]
-                                        hover:text-[--color-ink]
+                                        text-sm text-muted
+                                        hover:text-ink
                                         transition-colors duration-[--ease-base]
-                                        underline underline-offset-2 decoration-[--color-border]
+                                        underline underline-offset-2 decoration-border
                                     "
                                 >
                                     {item.label}

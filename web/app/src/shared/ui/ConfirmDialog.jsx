@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js'
+import { createSignal, mergeProps } from 'solid-js'
 
 import { Button } from './Button'
 import { Modal } from './Modal'
@@ -34,23 +34,27 @@ import { Modal } from './Modal'
  * @param {'danger' | 'accent' | 'primary'} [props.confirmVariant='danger']
  * @returns {import('solid-js').JSX.Element}
  */
-export function ConfirmDialog({
-    open,
-    onClose,
-    onConfirm,
-    title = '¿Estás seguro?',
-    description,
-    confirmLabel = 'Confirmar',
-    cancelLabel = 'Cancelar',
-    confirmVariant = 'danger'
-}) {
+export function ConfirmDialog(_props) {
+    const props = mergeProps(
+        {
+            open: false,
+            onClose: () => {},
+            onConfirm: () => {},
+            title: '¿Estás seguro?',
+            confirmLabel: 'Confirmar',
+            cancelLabel: 'Cancelar',
+            confirmVariant: 'danger'
+        },
+
+        _props
+    )
     const [loading, setLoading] = createSignal(false)
 
     const handleConfirm = async () => {
         setLoading(true)
         try {
-            await onConfirm?.()
-            onClose()
+            await props.onConfirm?.()
+            props.onClose()
         } finally {
             setLoading(false)
         }
@@ -59,9 +63,9 @@ export function ConfirmDialog({
     return (
         <Modal
             open={open}
-            onClose={onClose}
-            title={title}
-            description={description}
+            onClose={props.onClose}
+            title={props.title}
+            description={props.description}
             size="sm"
             closeOnBackdrop={!loading()}
         >
@@ -69,18 +73,18 @@ export function ConfirmDialog({
                 <Button
                     variant="ghost"
                     size="sm"
-                    onClick={onClose}
+                    onClick={props.onClose}
                     disabled={loading()}
                 >
-                    {cancelLabel}
+                    {props.cancelLabel}
                 </Button>
                 <Button
-                    variant={confirmVariant}
+                    variant={props.confirmVariant}
                     size="sm"
                     loading={loading()}
                     onClick={handleConfirm}
                 >
-                    {confirmLabel}
+                    {props.confirmLabel}
                 </Button>
             </Modal.Footer>
         </Modal>

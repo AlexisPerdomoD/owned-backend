@@ -22,10 +22,10 @@ import { Divider } from './Atoms'
  * @param {import('solid-js').JSX.Element} props.children
  * @returns {import('solid-js').JSX.Element}
  */
-export function AppShell({ class: cls = '', children }) {
+export function AppShell(props) {
     return (
-        <div class={`flex h-screen overflow-hidden bg-[--color-bg] ${cls}`}>
-            {children}
+        <div class={`flex h-screen overflow-hidden bg-bg ${props.class ?? ''}`}>
+            {props.children}
         </div>
     )
 }
@@ -40,38 +40,35 @@ export function AppShell({ class: cls = '', children }) {
  * @param {import('solid-js').JSX.Element} props.children
  * @returns {import('solid-js').JSX.Element}
  */
-AppShell.Sidebar = function Sidebar({
-    brand,
-    footer,
-    class: cls = '',
-    children
-}) {
+AppShell.Sidebar = function Sidebar(props) {
     return (
         <aside
             class={`
                 w-52 shrink-0 flex flex-col
-                bg-[--color-bg-2] border-r border-[--color-border]
+                bg-bg-2 border-r border-border
                 h-full overflow-y-auto
-                ${cls}
+                ${props.class ?? ''}
             `}
         >
             {/* Brand */}
-            {brand && (
-                <div class="px-4 py-4 border-b border-[--color-border-subtle]">
-                    <span class="font-[--font-serif] text-[--text-base] text-[--color-ink-dark]">
-                        {brand}
+            {props.brand && (
+                <div class="px-4 py-4 border-b border-border-subtle">
+                    <span class="font-serif text-base text-ink-dark">
+                        {props.brand}
                     </span>
                 </div>
             )}
 
             {/* Nav items */}
-            <nav class="flex-1 py-3 px-2 flex flex-col gap-0.5">{children}</nav>
+            <nav class="flex-1 py-3 px-2 flex flex-col gap-0.5">
+                {props.children}
+            </nav>
 
             {/* Footer slot */}
-            {footer && (
+            {props.footer && (
                 <>
                     <Divider />
-                    <div class="px-3 py-3">{footer}</div>
+                    <div class="px-3 py-3">{props.footer}</div>
                 </>
             )}
         </aside>
@@ -86,8 +83,12 @@ AppShell.Sidebar = function Sidebar({
  * @param {import('solid-js').JSX.Element} props.children
  * @returns {import('solid-js').JSX.Element}
  */
-AppShell.Content = function Content({ class: cls = '', children }) {
-    return <main class={`flex-1 overflow-y-auto ${cls}`}>{children}</main>
+AppShell.Content = function Content(props) {
+    return (
+        <main class={`flex-1 overflow-y-auto ${props.class ?? ''}`}>
+            {props.children}
+        </main>
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,50 +105,62 @@ AppShell.Content = function Content({ class: cls = '', children }) {
  * @param {import('solid-js').JSX.Element} props.children
  * @returns {import('solid-js').JSX.Element}
  */
-export function NavItem({
-    href,
-    active = false,
-    icon,
-    onClick,
-    class: cls = '',
-    children
-}) {
+export function NavItem(props) {
+    const active_style =
+        'bg-surface text-ink-dark border border-border font-normal'
+    const inactive_style = 'text-ink hover:bg-surface hover:text-ink-dark'
     const base = `
         flex items-center gap-2.5 w-full
-        px-3 py-2 rounded-[--radius-xs]
-        text-[--text-sm] font-[--font-sans] font-light
+        px-3 py-2 rounded-xs
+        text-sm font-sans font-light
         transition-colors duration-[--ease-base]
-        cursor-pointer
-        ${
-            active
-                ? 'bg-[--color-surface] text-[--color-ink-dark] border border-[--color-border] font-normal'
-                : 'text-[--color-ink] hover:bg-[--color-surface] hover:text-[--color-ink-dark]'
-        }
-        ${cls}
-    `
+        cursor-pointer`
 
-    const content = (
-        <>
-            {icon && (
-                <span class="shrink-0 opacity-60" style="font-size:15px">
-                    {icon}
-                </span>
-            )}
-            {children}
-        </>
-    )
-
-    if (href) {
-        return (
-            <a href={href} class={base} onClick={onClick}>
-                {content}
-            </a>
-        )
-    }
     return (
-        <button class={base} onClick={onClick}>
-            {content}
-        </button>
+        <>
+            {props.href ? (
+                <a
+                    href={props.href}
+                    class={
+                        base +
+                        ' ' +
+                        (props.active ? active_style : inactive_style) +
+                        (props.class ? ` ${props.class}` : '')
+                    }
+                    onClick={props.onClick}
+                >
+                    {props.icon && (
+                        <span
+                            class="shrink-0 opacity-60"
+                            style="font-size:15px"
+                        >
+                            {props.icon}
+                        </span>
+                    )}
+                    {props.children}
+                </a>
+            ) : (
+                <button
+                    class={
+                        base +
+                        ' ' +
+                        (props.active ? active_style : inactive_style) +
+                        (props.class ? ` ${props.class}` : '')
+                    }
+                    onClick={props.onClick}
+                >
+                    {props.icon && (
+                        <span
+                            class="shrink-0 opacity-60"
+                            style="font-size:15px"
+                        >
+                            {props.icon}
+                        </span>
+                    )}
+                    {props.children}
+                </button>
+            )}
+        </>
     )
 }
 
@@ -166,52 +179,44 @@ export function NavItem({
  * @param {string} [props.class]
  * @returns {import('solid-js').JSX.Element}
  */
-export function PageHeader({
-    title,
-    subtitle,
-    actions,
-    breadcrumb,
-    onBack,
-    backTo,
-    class: cls = ''
-}) {
+export function PageHeader(props) {
     return (
-        <div class={`flex items-start justify-between gap-4 mb-6 ${cls}`}>
+        <div
+            class={`flex items-start justify-between gap-4 mb-6 ${props.class ?? ''}`}
+        >
             <div class="flex flex-col gap-1">
-                {(breadcrumb || onBack || backTo) && (
+                {(props.breadcrumb || props.onBack || props.backTo) && (
                     <div class="flex items-center gap-2 mb-1">
-                        {onBack && (
+                        {props.onBack && (
                             <button
                                 type="button"
-                                onClick={onBack}
-                                class="text-[--text-sm] text-[--color-accent] hover:underline"
+                                onClick={props.onBack}
+                                class="text-sm text-accent hover:underline"
                             >
                                 ← Back
                             </button>
                         )}
-                        {backTo && !onBack && (
+                        {props.backTo && !props.onBack && (
                             <a
-                                href={backTo}
-                                class="text-[--text-sm] text-[--color-accent] hover:underline"
+                                href={props.backTo}
+                                class="text-sm text-accent hover:underline"
                             >
                                 ← Back
                             </a>
                         )}
                     </div>
                 )}
-                {breadcrumb}
-                <h1 class="font-[--font-serif] text-[--text-2xl] text-[--color-ink-dark] leading-tight">
-                    {title}
+                {props.breadcrumb}
+                <h1 class="font-[--font-serif] text-2xl text-ink-dark leading-tight">
+                    {props.title}
                 </h1>
-                {subtitle && (
-                    <p class="text-[--text-sm] text-[--color-muted]">
-                        {subtitle}
-                    </p>
+                {props.subtitle && (
+                    <p class="text-sm text-muted">{props.subtitle}</p>
                 )}
             </div>
-            {actions && (
+            {props.actions && (
                 <div class="flex items-center gap-2 shrink-0 mt-1">
-                    {actions}
+                    {props.actions}
                 </div>
             )}
         </div>

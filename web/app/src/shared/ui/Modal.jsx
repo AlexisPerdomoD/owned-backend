@@ -1,4 +1,4 @@
-import { Show, createEffect, onCleanup } from 'solid-js'
+import { Show, createEffect, mergeProps, onCleanup, splitProps } from 'solid-js'
 import { Portal } from 'solid-js/web'
 
 /**
@@ -25,29 +25,33 @@ const sizes = {
 }
 
 /**
- * @param {Object} props
- * @param {boolean} props.open                           - Controla visibilidad.
- * @param {() => void} props.onClose                    - Callback de cierre.
- * @param {string} [props.title]
- * @param {string} [props.description]
- * @param {'sm' | 'md' | 'lg' | 'xl'} [props.size='md']
- * @param {boolean} [props.closeOnBackdrop=true]
- * @param {import('solid-js').JSX.Element} props.children
+ * @param {Object} _props
+ * @param {boolean} _props.open                           - Controla visibilidad.
+ * @param {() => void} _props.onClose                    - Callback de cierre.
+ * @param {string} [_props.title]
+ * @param {string} [_props.description]
+ * @param {'sm' | 'md' | 'lg' | 'xl'} [_props.size='md']
+ * @param {boolean} [_props.closeOnBackdrop=true]
+ * @param {import('solid-js').JSX.Element} _props.children
  * @returns {import('solid-js').JSX.Element}
  */
-export function Modal({
-    open,
-    onClose,
-    title,
-    description,
-    size = 'md',
-    closeOnBackdrop = true,
-    children
-}) {
+export function Modal(_props) {
+    const props = mergeProps(
+        {
+            open: false,
+            onClose: () => {},
+            title: '',
+            description: '',
+            size: 'md',
+            closeOnBackdrop: true
+        },
+
+        _props
+    )
     createEffect(() => {
-        if (!open) return
+        if (!props.open) return
         const onKey = e => {
-            if (e.key === 'Escape') onClose()
+            if (e.key === 'Escape') props.onClose()
         }
         document.addEventListener('keydown', onKey)
         document.body.style.overflow = 'hidden'
@@ -65,36 +69,43 @@ export function Modal({
                     class="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style="background: rgba(42, 37, 32, 0.5)"
                     onClick={e => {
-                        if (closeOnBackdrop && e.target === e.currentTarget)
-                            onClose()
+                        const isCloseOnBackdropClick =
+                            props.closeOnBackdrop &&
+                            e.target === e.currentTarget
+
+                        if (!isCloseOnBackdropClick) {
+                            return
+                        }
+
+                        props.onClose()
                     }}
                     role="dialog"
                     aria-modal="true"
-                    aria-labelledby={title ? 'modal-title' : undefined}
+                    aria-labelledby={props.title ? 'modal-title' : undefined}
                 >
                     {/* Panel */}
                     <div
                         class={`
-                            relative w-full ${sizes[size]}
-                            bg-[--color-surface] border border-[--color-border]
-                            rounded-[--radius-sm] shadow-sm
+                            relative w-full ${sizes[props.size]}
+                            bg-surface border border-border
+                            rounded-sm shadow-sm
                             flex flex-col
                         `}
                     >
                         {/* Header */}
-                        {(title || description) && (
+                        {(props.title || props.description) && (
                             <div class="px-5 py-4 border-b border-[--color-border-subtle]">
-                                {title && (
+                                {props.title && (
                                     <h2
                                         id="modal-title"
-                                        class="font-[--font-serif] text-[--text-lg] text-[--color-ink-dark] leading-snug"
+                                        class="font-serif text-lg text-ink-dark leading-snug"
                                     >
-                                        {title}
+                                        {props.title}
                                     </h2>
                                 )}
-                                {description && (
-                                    <p class="mt-1 text-[--text-sm] text-[--color-muted]">
-                                        {description}
+                                {props.description && (
+                                    <p class="mt-1 text-sm text-muted">
+                                        {props.description}
                                     </p>
                                 )}
                             </div>
@@ -102,11 +113,11 @@ export function Modal({
 
                         {/* Close button */}
                         <button
-                            onClick={onClose}
+                            onClick={() => props.onClose()}
                             aria-label="Cerrar"
                             class="
                                 absolute top-3.5 right-4
-                                text-[--color-muted] hover:text-[--color-ink]
+                                text-muted hover:text-ink
                                 transition-colors duration-[--ease-base]
                                 cursor-pointer
                             "
@@ -127,7 +138,7 @@ export function Modal({
                         </button>
 
                         {/* Body */}
-                        <div class="px-5 py-4 flex-1">{children}</div>
+                        <div class="px-5 py-4 flex-1">{props.children}</div>
                     </div>
                 </div>
             </Show>
@@ -143,17 +154,18 @@ export function Modal({
  * @param {import('solid-js').JSX.HTMLAttributes<HTMLDivElement>} props
  * @returns {import('solid-js').JSX.Element}
  */
-Modal.Footer = function ModalFooter({ class: cls = '', children, ...props }) {
+Modal.Footer = function ModalFooter(props) {
+    const [local, rest] = splitProps(props, ['class', 'children'])
     return (
         <div
             class={`
                 flex items-center justify-end gap-2
                 pt-3 mt-2 border-t border-[--color-border-subtle]
-                ${cls}
+                ${local.class ?? ''}
             `}
-            {...props}
+            {...rest}
         >
-            {children}
+            {local.children}
         </div>
     )
 }

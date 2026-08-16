@@ -9,6 +9,8 @@
  * </Card>
  */
 
+import { splitProps } from 'solid-js'
+
 /**
  * @param {Object} props
  * @param {boolean} [props.hoverable=false] - Adds subtle hover effect for clickable cards.
@@ -16,88 +18,72 @@
  * @param {import('solid-js').JSX.HTMLAttributes<HTMLDivElement>} props
  * @returns {import('solid-js').JSX.Element}
  */
-export function Card({
-    hoverable = false,
-    class: cls = '',
-    children,
-    onClick,
-    ...rest
-}) {
+export function Card(props) {
+    const [local, rest] = splitProps(props, ['hoverable', 'class', 'children'])
     return (
         <div
             class={`
                 bg-bg border border-border-subtle
                 rounease-basition-colors ease-base
-                ${hoverable ? 'hover:border-accent  hover:bg-bg-2 cursor-pointer' : ''}
-                ${cls}
+                ${local.hoverable ? 'hover:border-accent  hover:bg-bg-2 cursor-pointer' : ''}
+                ${local.class}
             `}
-            onClick={onClick}
             {...rest}
         >
-            {children}
+            {local.children}
         </div>
     )
 }
 
-Card.Header = function CardHeader({
-    title,
-    subtitle,
-    action,
-    class: cls = '',
-    ...props
-}) {
+Card.Header = function CardHeader(props) {
+    const [local, rest] = splitProps(props, ["title", "subtitle", "action", "class"])
+
     return (
         <div
             class={`
                 flex items-start justify-between gap-4
                 px-4 py-3 border-b border-border-subtle
-                ${cls}
+                ${local.class}
             `}
-            {...props}
+            {...rest}
         >
             <div class="flex flex-col gap-0.5">
-                {title && (
+                {local.title && (
                     <h3 class="font-serif text-base text-ink-dark leading-snug">
-                        {title}
+                        {local.title}
                     </h3>
                 )}
-                {subtitle && <p class="text-xs text-muted">{subtitle}</p>}
+                {local.subtitle && <p class="text-xs text-muted">{local.subtitle}</p>}
             </div>
-            {action && <div class="shrink-0">{action}</div>}
+            {local.action && <div class="shrink-0">{local.action}</div>}
         </div>
     )
 }
 
-Card.Body = function CardBody({
-    class: cls = '',
-    children,
-    onClick,
-    ...props
-}) {
+Card.Body = function CardBody(props) {
+    const [local, rest] = splitProps(props, ["class", "children"])
+
     return (
-        <div class={`px-4 py-3 ${cls}`} onClick={onClick} {...props}>
-            {children}
+        <div class={`px-4 py-3 ${local.class}`}  {...rest}>
+            {local.children}
         </div>
     )
 }
 
-Card.Footer = function CardFooter({
-    class: cls = '',
-    children,
-    onClick,
-    ...props
-}) {
+Card.Footer = function CardFooter(props) {
+    const [local, rest] = splitProps(props, ["class", "children"])
+
+
     return (
         <div
             class={`
                 flex items-center justify-between
                 px-4 py-3 border-t border-border-subtle
-                ${cls}
+                ${local.class}
             `}
-            onClick={onClick}
-            {...props}
+            {...rest}
         >
-            {children}
+            {local.children}
         </div>
     )
 }

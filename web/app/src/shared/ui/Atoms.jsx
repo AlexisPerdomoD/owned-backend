@@ -1,3 +1,5 @@
+import { mergeProps } from 'solid-js'
+
 /**
  * Línea divisora horizontal u vertical.
  *
@@ -6,21 +8,31 @@
  * @param {string} [props.class]
  * @returns {import('solid-js').JSX.Element}
  */
-export function Divider({ orientation = 'horizontal', class: cls = '' }) {
-    if (orientation === 'vertical') {
-        return (
-            <span class={`inline-block w-px self-stretch bg-[--color-border-subtle] ${cls}`} role="separator" aria-orientation="vertical" />
-        )
-    }
-    return <hr class={`border-none border-t border-[--color-border-subtle] ${cls}`} role="separator" />
+export function Divider(props) {
+    return (
+        <>
+            {props.orientation === 'vertical' ? (
+                <span
+                    class={`inline-block w-px self-stretch bg-border-subtle ${props.class}`}
+                    role="separator"
+                    aria-orientation="vertical"
+                />
+            ) : (
+                <hr
+                    class={`border-none border-t border-border-subtle ${props.class}`}
+                    role="separator"
+                />
+            )}
+        </>
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const avatarSizes = {
-    sm: 'w-7 h-7 text-[--text-xs]',
-    md: 'w-9 h-9 text-[--text-sm]',
-    lg: 'w-12 h-12 text-[--text-base]'
+    sm: 'w-7 h-7 text-xs',
+    md: 'w-9 h-9 text-sm',
+    lg: 'w-12 h-12 text-base'
 }
 
 /**
@@ -33,25 +45,33 @@ const avatarSizes = {
  * @param {string} [props.class]
  * @returns {import('solid-js').JSX.Element}
  */
-export function Avatar({ src, name = '', size = 'md', class: cls = '' }) {
-    const initials = name
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map(w => w[0]?.toUpperCase() ?? '')
-        .join('')
+export function Avatar(props) {
+    const mergedProps = mergeProps({ name: '', size: 'md', class: '' }, props)
 
     return (
         <span
             class={`
                 inline-flex items-center justify-center
                 rounded-full shrink-0 overflow-hidden
-                bg-[--color-accent-pale] text-[--color-accent]
-                font-[--font-sans] font-normal select-none
-                ${avatarSizes[size]} ${cls}
+                bg-accent-pale text-accent
+                font-sans font-normal select-none
+                ${avatarSizes[mergedProps.size]} ${mergedProps.class}
             `}
         >
-            {src ? <img src={src} alt={name} class="w-full h-full object-cover" /> : initials || '?'}
+            {mergedProps.src ? (
+                <img
+                    src={mergedProps.src}
+                    alt={mergedProps.name}
+                    class="w-full h-full object-cover"
+                />
+            ) : (
+                mergedProps.name
+                    .trim()
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map(w => w[0]?.toUpperCase() ?? '')
+                    .join('') || '?'
+            )}
         </span>
     )
 }
@@ -72,15 +92,16 @@ const spinnerSizes = {
  * @param {string} [props.class]
  * @returns {import('solid-js').JSX.Element}
  */
-export function Spinner({ size = 'md', class: cls = '' }) {
+export function Spinner(_props) {
+    const props = mergeProps({ size: 'md', class: '' }, _props)
     return (
         <span
             role="status"
             aria-label="Cargando"
             class={`
                 inline-block rounded-full animate-spin
-                border-[--color-border] border-t-[--color-ink]
-                ${spinnerSizes[size]} ${cls}
+                border-border border-t-ink
+                ${spinnerSizes[props.size]} ${props.class}
             `}
         />
     )
@@ -99,19 +120,26 @@ export function Spinner({ size = 'md', class: cls = '' }) {
  * @param {string} [props.class]
  * @returns {import('solid-js').JSX.Element}
  */
-export function EmptyState({ title = 'Sin resultados', description, action, icon, class: cls = '' }) {
+export function EmptyState(_props) {
+    const props = mergeProps({ title: 'Sin resultados', class: '' }, _props)
     return (
         <div
             class={`
                 flex flex-col items-center justify-center gap-3
                 py-16 px-8 text-center
-                ${cls}
+                ${props.class}
             `}
         >
-            {icon && <span class="text-[--color-border] mb-1 opacity-60">{icon}</span>}
-            <p class="font-[--font-serif] text-[--text-base] text-[--color-ink]">{title}</p>
-            {description && <p class="text-[--text-sm] text-[--color-muted] max-w-xs leading-relaxed">{description}</p>}
-            {action && <div class="mt-2">{action}</div>}
+            {props.icon && (
+                <span class="text-border mb-1 opacity-60">{props.icon}</span>
+            )}
+            <p class="font-serif text-base text-ink">{props.title}</p>
+            {props.description && (
+                <p class="text-sm text-muted max-w-xs leading-relaxed">
+                    {props.description}
+                </p>
+            )}
+            {props.action && <div class="mt-2">{props.action}</div>}
         </div>
     )
 }

@@ -1,3 +1,5 @@
+import { splitProps } from 'solid-js'
+
 /**
  * Select nativo estilizado.
  *
@@ -9,45 +11,50 @@
  * @param {import('solid-js').JSX.SelectHTMLAttributes<HTMLSelectElement>} props
  * @returns {import('solid-js').JSX.Element}
  */
-export function Select({
-    label,
-    hint,
-    error,
-    class: cls = '',
-    id,
-    children,
-    ...props
-}) {
-    const selectId = id ?? `select-${Math.random().toString(36).slice(2, 7)}`
+export function Select(props) {
+    const [local, rest] = splitProps(props, [
+        'label',
+        'hint',
+        'error',
+        'class',
+        'id',
+        'children',
+        'onChange',
+        'value'
+    ])
+
+    const selectId =
+        local.id ?? `select-${Math.random().toString(36).slice(2, 7)}`
 
     return (
-        <div class={`flex flex-col gap-1 ${cls}`}>
-            {label && (
+        <div class={`flex flex-col gap-1 ${local.class}`}>
+            {local.label && (
                 <label
                     for={selectId}
-                    class="text-[--text-xs] text-[--color-muted] tracking-wide uppercase"
+                    class="text-xs text-muted tracking-wide uppercase"
                 >
-                    {label}
+                    {local.label}
                 </label>
             )}
 
             <div class="relative">
                 <select
                     id={selectId}
+
                     class={`
                         w-full appearance-none
-                        font-[--font-sans] font-light text-[--text-sm]
-                        text-[--color-ink-dark]
-                        bg-[--color-surface] border rounded-[--radius-xs]
+                        font-sans font-light text-sm
+                        text-ink-dark
+                        bg-surface border rounded-xs
                         px-3 py-2 pr-8
                         transition-colors duration-[--ease-base]
                         focus:outline-none focus:border-[--color-ink]
                         disabled:opacity-40 disabled:cursor-not-allowed
-                        ${error ? 'border-red-400' : 'border-[--color-border] hover:border-[--color-muted]'}
+                        ${local.error ? 'border-red-400' : 'border-border hover:border-muted'}
                     `}
-                    {...props}
+                    {...rest}
                 >
-                    {children}
+                    {local.children}
                 </select>
                 {/* chevron decorativo */}
                 <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[--color-muted]">
@@ -63,9 +70,9 @@ export function Select({
                 </span>
             </div>
 
-            {error && <p class="text-[--text-xs] text-red-500">{error}</p>}
-            {!error && hint && (
-                <p class="text-[--text-xs] text-[--color-muted]">{hint}</p>
+            {local.error && <p class="text-xs text-red-500">{local.error}</p>}
+            {!local.error && local.hint && (
+                <p class="text-xs text-muted">{local.hint}</p>
             )}
         </div>
     )
@@ -85,49 +92,49 @@ export function Select({
  * @param {import('solid-js').JSX.TextareaHTMLAttributes<HTMLTextAreaElement>} props
  * @returns {import('solid-js').JSX.Element}
  */
-export function Textarea({
-    label,
-    hint,
-    error,
-    rows = 4,
-    class: cls = '',
-    id,
-    ...props
-}) {
+export function Textarea(props) {
+    const [local, rest] = splitProps(props, [
+        'label',
+        'hint',
+        'error',
+        'rows',
+        'class',
+        'id'
+    ])
     const textareaId =
-        id ?? `textarea-${Math.random().toString(36).slice(2, 7)}`
+        local.id ?? `textarea-${Math.random().toString(36).slice(2, 7)}`
 
     return (
-        <div class={`flex flex-col gap-1 ${cls}`}>
-            {label && (
+        <div class={`flex flex-col gap-1 ${local.class ?? ''}`}>
+            {local.label && (
                 <label
                     for={textareaId}
-                    class="text-[--text-xs] text-[--color-muted] tracking-wide uppercase"
+                    class="text-xs text-muted tracking-wide uppercase"
                 >
-                    {label}
+                    {local.label}
                 </label>
             )}
 
             <textarea
                 id={textareaId}
-                rows={rows}
+                rows={local.rows !== undefined ? local.rows : 4}
                 class={`
                     w-full resize-y
-                    font-[--font-sans] font-light text-[--text-sm]
-                    text-[--color-ink-dark] placeholder:text-[--color-muted]
-                    bg-[--color-surface] border rounded-[--radius-xs]
+                    font-sans font-light text-sm
+                    text-ink-dark placeholder:text-muted
+                    bg-surface border rounded-xs
                     px-3 py-2
                     transition-colors duration-[--ease-base]
-                    focus:outline-none focus:border-[--color-ink]
+                    focus:outline-none focus:border-ink
                     disabled:opacity-40 disabled:cursor-not-allowed
-                    ${error ? 'border-red-400' : 'border-[--color-border] hover:border-[--color-muted]'}
+                    ${local.error ? 'border-red-400' : 'border-border hover:border-muted'}
                 `}
-                {...props}
+                {...rest}
             />
 
-            {error && <p class="text-[--text-xs] text-red-500">{error}</p>}
-            {!error && hint && (
-                <p class="text-[--text-xs] text-[--color-muted]">{hint}</p>
+            {local.error && <p class="text-xs text-red-500">{local.error}</p>}
+            {!local.error && local.hint && (
+                <p class="text-xs text-muted">{local.hint}</p>
             )}
         </div>
     )
@@ -145,38 +152,38 @@ export function Textarea({
  * @param {import('solid-js').JSX.InputHTMLAttributes<HTMLInputElement>} props
  * @returns {import('solid-js').JSX.Element}
  */
-export function Checkbox({ label, hint, class: cls = '', id, ...props }) {
-    const checkId = id ?? `check-${Math.random().toString(36).slice(2, 7)}`
+export function Checkbox(props) {
+    const [local, rest] = splitProps(props, ['label', 'hint', 'class', 'id'])
+    const checkId =
+        local.id ?? `check-${Math.random().toString(36).slice(2, 7)}`
 
     return (
-        <div class={`flex items-start gap-2.5 ${cls}`}>
+        <div class={`flex items-start gap-2.5 ${props.class}`}>
             <input
                 type="checkbox"
                 id={checkId}
                 class={`
                     mt-0.5 w-3.5 h-3.5 shrink-0
-                    rounded-[--radius-xs] border border-[--color-border]
-                    bg-[--color-surface]
-                    accent-[--color-ink-dark]
+                    rounded-xs border border-border
+                    bg-surface
+                    accent-ink-dark
                     cursor-pointer
                     disabled:opacity-40 disabled:cursor-not-allowed
                 `}
-                {...props}
+                {...rest}
             />
-            {(label || hint) && (
+            {(local.label || local.hint) && (
                 <div class="flex flex-col gap-0.5">
-                    {label && (
+                    {local.label && (
                         <label
                             for={checkId}
-                            class="text-[--text-sm] text-[--color-ink] cursor-pointer leading-none"
+                            class="text-sm text-ink cursor-pointer leading-none"
                         >
-                            {label}
+                            {local.label}
                         </label>
                     )}
-                    {hint && (
-                        <p class="text-[--text-xs] text-[--color-muted]">
-                            {hint}
-                        </p>
+                    {local.hint && (
+                        <p class="text-xs text-muted">{local.hint}</p>
                     )}
                 </div>
             )}
