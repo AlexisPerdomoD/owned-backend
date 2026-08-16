@@ -47,9 +47,10 @@ make test-local           # Spins up test DB (port 5502), runs all tests, tears 
 
 - Located in `web/app/`
 - Uses **TailwindCSS 4** (configured via `@import 'tailwindcss'` in CSS, no tailwind.config.js)
-- Path aliases: `@/*` → `src/`, `@entities/*`, `@features/*`, `@pages/*`, `@shared/*`
+- Path aliases: `@/*` → `src/`, `@entities/*` → `src/entities`, `@features/*` → `src/features`, `@pages/*` → `src/pages`, `@shared/*` → `src/shared`
 - No separate prettier config — eslint config handles style with Prettier plugin
 - **Build output**: `web/app/dist` → copied to `web/dist` by `make build-web`
+- Frontend agent instructions: see `web/app/AGENTS.md`
 
 ## API Routes (chi router)
 
