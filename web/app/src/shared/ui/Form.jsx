@@ -40,15 +40,16 @@ export function Select(props) {
             <div class="relative">
                 <select
                     id={selectId}
+                    onChange={e => local.onChange?.(e)}
 
                     class={`
                         w-full appearance-none
                         font-sans font-light text-sm
                         text-ink-dark
-                        bg-surface border rounded-xs
+                        bg-bg border rounded-xs
                         px-3 py-2 pr-8
                         transition-colors duration-[--ease-base]
-                        focus:outline-none focus:border-[--color-ink]
+                        focus:outline-none focus:border-ink
                         disabled:opacity-40 disabled:cursor-not-allowed
                         ${local.error ? 'border-red-400' : 'border-border hover:border-muted'}
                     `}

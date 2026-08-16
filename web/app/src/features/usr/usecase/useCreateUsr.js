@@ -5,7 +5,15 @@ import { toast } from '@/shared/ui'
 
 export function useCreateUsr() {
     const [loading, setLoading] = createSignal(false)
-
+    /**
+     * @param {string} username
+     * @param {string} password
+     * @param {string} firstname
+     * @param {string} lastname
+     * @param {string} role
+     * @param {string[] | undefined} access
+     * @returns {Promise<[boolean, import('@/entities/usrs').Usr]>}
+     */
     const create = async (
         username,
         password,

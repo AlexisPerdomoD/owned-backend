@@ -1,314 +1,13 @@
 import { For, createSignal } from 'solid-js'
 
+import { ROLES } from '@/entities/usrs'
+import { CreateUsrForm, UsrsTable } from '@/features/usr/ui'
 import {
     useCreateUsr,
     useDeleteUsr,
     usePaginateUsrs
 } from '@/features/usr/usecase'
-import {
-    Badge,
-    Button,
-    PageHeader,
-    Pagination,
-    Table,
-    toast
-} from '@/shared/ui'
-
-const roleVariant = {
-    super_usr_role: 'dark',
-    normal_usr_role: 'accent',
-    limited_usr_role: 'neutral'
-}
-
-const roleLabel = {
-    super_usr_role: 'Super',
-    normal_usr_role: 'Normal',
-    limited_usr_role: 'Limited'
-}
-/**
- * @param {Object} props
- * @param {import('@/entities/usrs').Usr[]} props.usrs
- * @param {(usr: import('@/entities/usrs').Usr) => void} [props.onUpdate]
- * @param {(usr: import('@/entities/usrs').Usr) => void} [props.onDelete]
- * @param {boolean} [props.loading]
- */
-function UsrsTable(props) {
-    const columns = [
-        {
-            key: 'username',
-            header: 'Email',
-            class: 'w-48',
-            render: row => (
-                <span class="font-medium text-ink-dark">{row.username}</span>
-            )
-        },
-        {
-            key: 'firstname',
-            header: 'First Name',
-            class: 'w-24',
-            render: row => row.firstname ?? '-'
-        },
-        {
-            key: 'lastname',
-            header: 'Last Name',
-            class: 'w-24',
-            render: row => row.lastname ?? '-'
-        },
-        {
-            key: 'role',
-            header: 'Role',
-            class: 'w-24',
-            render: row => (
-                <Badge variant={roleVariant[row.role] ?? 'neutral'}>
-                    {roleLabel[row.role] ?? row.role}
-                </Badge>
-            )
-        },
-        {
-            key: 'created_at',
-            header: 'Created',
-            class: 'w-24',
-            render: row => new Date(row.created_at).toLocaleDateString()
-        },
-        {
-            key: 'actions',
-            header: '',
-            class: 'w-16',
-            align: 'right',
-            render: row => (
-                <div class="flex gap-2 items-center justify-end">
-                    {props.onUpdate && (
-                        <button
-                            type="button"
-                            onClick={e => {
-                                e.stopPropagation()
-                                props.onUpdate(row)
-                            }}
-                            class="text-sm text-accent hover:underline cursor-pointer font-bold"
-                        >
-                            Update
-                        </button>
-                    )}
-                    {props.onDelete && (
-                        <button
-                            type="button"
-                            onClick={e => {
-                                e.stopPropagation()
-                                props.onDelete(row)
-                            }}
-                            class="text-sm text-danger hover:underline cursor-pointer font-bold"
-                        >
-                            Delete
-                        </button>
-                    )}
-                </div>
-            )
-        }
-    ]
-
-    return (
-        <Table
-            columns={columns}
-            rows={props.usrs}
-            loading={props.loading}
-            emptyTitle="No users yet"
-            emptyDescription="Create a user to get started."
-        />
-    )
-}
-
-const roleOptions = [
-    { value: 'normal_usr_role', label: 'Normal User' },
-    { value: 'limited_usr_role', label: 'Limited User' }
-]
-/**
- * @param {Object} props
- * @param {(username: string, password: string, firstname: string, lastname: string, role: string, roles: string[]) => void} props.onSubmit
- * @param {() => void} [props.onClose]
- * @param {boolean} [props.open]
- * @param {import('solid-js').JSX.Element} [props.children]
- */
-function CreateUsrForm(props) {
-    let usernameInput
-    let passwordInput
-    let firstnameInput
-    let lastnameInput
-    let roleInput
-
-    const [errors, setErrors] = createSignal({})
-
-    const handleSubmit = e => {
-        e.preventDefault()
-        setErrors({})
-        if (!props.onSubmit) {
-            setErrors({ general: 'No handler provided. Aborting.' })
-            return
-        }
-
-        const username = usernameInput?.value?.trim()
-        const password = passwordInput?.value
-        const firstname = firstnameInput?.value?.trim()
-        const lastname = lastnameInput?.value?.trim()
-        const role = roleInput?.value
-
-        if (!username || !password || !firstname || !lastname || !role) {
-            setErrors({
-                general: 'All fields are required.'
-            })
-            return
-        }
-
-        props.onSubmit(username, password, firstname, lastname, role, [])
-    }
-
-    return (
-        <>
-            {props.open && (
-                <div
-                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-                    onClick={() => props.onClose?.()}
-                >
-                    <div
-                        class="bg-surface border border-border rounded-md w-full max-w-md p-6"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <h3 class="font-serif text-lg text-ink-dark mb-4">
-                            New User
-                        </h3>
-
-                        <form
-                            onSubmit={handleSubmit}
-                            class="flex flex-col gap-4"
-                        >
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs text-muted uppercase tracking-wide">
-                                    Email *
-                                </label>
-                                <input
-                                    ref={r => (usernameInput = r)}
-                                    type="email"
-                                    placeholder="email@example.com"
-                                    class="
-                                w-full font-sans font-light text-sm
-                                text-[--color-ink-dark]
-                                bg-[--color-bg] border border-[--color-border] rounded-xs
-                                px-3 py-2
-                                focus:outline-none focus:border-[--color-ink]
-                            "
-                                    required
-                                />
-                            </div>
-
-                            <div class="flex gap-2">
-                                <div class="flex flex-col gap-1 flex-1">
-                                    <label class="text-xs text-[--color-muted] uppercase tracking-wide">
-                                        First Name *
-                                    </label>
-                                    <input
-                                        ref={r => (firstnameInput = r)}
-                                        type="text"
-                                        placeholder="John"
-                                        class="
-                                    w-full font-sans font-light text-sm
-                                    text-[--color-ink-dark]
-                                    bg-[--color-bg] border border-[--color-border] rounded-xs
-                                    px-3 py-2
-                                    focus:outline-none focus:border-[--color-ink]
-                                "
-                                        required
-                                    />
-                                </div>
-                                <div class="flex flex-col gap-1 flex-1">
-                                    <label class="text-xs text-[--color-muted] uppercase tracking-wide">
-                                        Last Name *
-                                    </label>
-                                    <input
-                                        ref={r => (lastnameInput = r)}
-                                        type="text"
-                                        placeholder="Doe"
-                                        class="
-                                    w-full font-sans font-light text-sm
-                                    text-[--color-ink-dark]
-                                    bg-[--color-bg] border border-[--color-border] rounded-xs
-                                    px-3 py-2
-                                    focus:outline-none focus:border-[--color-ink]
-                                "
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs text-[--color-muted] uppercase tracking-wide">
-                                    Role *
-                                </label>
-                                <select
-                                    ref={r => (roleInput = r)}
-                                    defaultValue="normal_usr_role"
-                                    class="
-                                w-full font-sans font-light text-sm
-                                text-[--color-ink-dark]
-                                bg-[--color-bg] border border-[--color-border] rounded-xs
-                                px-3 py-2
-                                focus:outline-none focus:border-[--color-ink]
-                            "
-                                    required
-                                >
-                                    <For each={roleOptions}>
-                                        {opt => (
-                                            <option value={opt.value}>
-                                                {opt.label}
-                                            </option>
-                                        )}
-                                    </For>
-                                </select>
-                            </div>
-
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs text-[--color-muted] uppercase tracking-wide">
-                                    Password *
-                                </label>
-                                <input
-                                    ref={r => (passwordInput = r)}
-                                    type="password"
-                                    minLength={8}
-                                    placeholder="Min 8 characters"
-                                    class="
-                                w-full font-sans font-light text-sm
-                                text-[--color-ink-dark]
-                                bg-[--color-bg] border border-[--color-border] rounded-xs
-                                px-3 py-2
-                                focus:outline-none focus:border-[--color-ink]
-                            "
-                                    required
-                                />
-                            </div>
-
-                            {errors()?.general && (
-                                <p class="text-xs text-[--color-danger]">
-                                    {errors().general}
-                                </p>
-                            )}
-
-                            <div class="flex justify-end gap-2">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={props.onClose}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button type="submit" loading={props.loading}>
-                                    Create
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </>
-    )
-}
+import { Button, PageHeader, Pagination, Select, toast } from '@/shared/ui'
 
 export function UsrsView() {
     const {
@@ -327,26 +26,46 @@ export function UsrsView() {
     const { remove, loading: deleting } = useDeleteUsr()
 
     const [showForm, setShowForm] = createSignal(false)
-    const [searchInput, setSearchInput] = createSignal('')
 
     const handleSearch = () => {
-        setSearch(searchInput())
         goTo(1)
     }
 
-    const handleDelete = async usr => {
-        if (confirm(`Delete user "${usr.username}"?`)) {
-            const [success] = await remove(usr.id)
-            if (success) {
+    const handleCreate = (username, password, firstname, lastname, role) => {
+        create(username, password, firstname, lastname, role).then(
+            ([success, usr]) => {
+                if (!success) {
+                    toast({
+                        type: 'error',
+                        message: usr.general ?? 'Error creating user.'
+                    })
+                    return
+                }
+
+                setShowForm(false)
                 refresh()
             }
+        )
+    }
+
+    const handleDelete = async usr => {
+        if (!confirm(`Delete user "${usr.username}"?`)) {
+            return
         }
+
+        const [success, issues] = await remove(usr.id)
+        if (!success) {
+            toast({ type: 'error', message: issues.general ?? 'Delete failed' })
+            return
+        }
+
+        refresh()
     }
 
     return (
         <section class="flex flex-col p-6">
             <PageHeader
-                title="Users"
+                title="Usrs"
                 subtitle="Manage users."
                 actions={
                     <Button onClick={() => setShowForm(true)}>
@@ -358,19 +77,29 @@ export function UsrsView() {
             <div class="mb-4 flex items-center gap-2">
                 <input
                     type="text"
-                    placeholder="Search users..."
-                    value={searchInput()}
-                    onInput={e => setSearchInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                    placeholder="Search users by name or username"
+                    value={search()}
+                    onInput={e => setSearch(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch(e)}
                     class="
                         w-64 font-sans font-light text-sm
-                        text-[--color-ink-dark] placeholder:text-muted
+                        text-ink-dark placeholder:text-muted
                         bg-surface border border-border rounded-xs
                         px-3 py-2
                         focus:outline-none focus:border-ink
                     "
                 />
-                <Button variant="ghost" size="sm" onClick={handleSearch}>
+
+                <Select
+                    value={role()}
+                    onChange={e => setRole(e.target.value ?? null)}
+                >
+                    <option value="">All Roles</option>
+                    <For each={ROLES}>
+                        {opt => <option value={opt.value}>{opt.label}</option>}
+                    </For>
+                </Select>
+                <Button variant="ghost" size="md" onClick={handleSearch}>
                     Search
                 </Button>
             </div>
@@ -393,23 +122,7 @@ export function UsrsView() {
             <CreateUsrForm
                 open={showForm()}
                 loading={creating()}
-                onSubmit={(username, password, firstname, lastname, role) => {
-                    create(username, password, firstname, lastname, role).then(
-                        ([success, usr]) => {
-                            if (!success) {
-                                toast({
-                                    type: 'error',
-                                    message:
-                                        usr.general ?? 'Error creating user.'
-                                })
-                                return
-                            }
-
-                            setShowForm(false)
-                            refresh()
-                        }
-                    )
-                }}
+                onSubmit={handleCreate}
                 onClose={() => setShowForm(false)}
             />
         </section>
