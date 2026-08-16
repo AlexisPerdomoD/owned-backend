@@ -46,9 +46,7 @@ export const buildCreateCommentDTO = CreateCommentDTO.build
  * @returns {Promise<import('@/entities/nodes').NodeComment[]>}
  */
 export async function apiGetComments(nodeId) {
-    const params = new URLSearchParams()
-    params.set('node_id', nodeId)
-    return await reqJSON(`/api/v1/comments?${params}`)
+    return await reqJSON(`/api/v1/nodes/${nodeId}/comments`)
 }
 
 /**
@@ -73,4 +71,3 @@ export async function apiDeleteComment(commentId) {
         method: 'DELETE'
     })
 }
-
