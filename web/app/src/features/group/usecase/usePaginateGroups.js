@@ -23,7 +23,6 @@ export function usePaginateGroups({ pageSize = 20 } = {}) {
         setLoading(true)
         try {
             const res = await apiPaginateGroups(pg, pageSize, term)
-            console.log(res)
             setGroups(res.data)
             setTotal(res.total_count)
             setPage(res.page)
