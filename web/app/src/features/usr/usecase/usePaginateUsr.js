@@ -1,0 +1,45 @@
+import { createSignal, onMount } from 'solid-js'
+
+import { apiPaginateUsrs } from '@/entities/usrs/api'
+
+export function usePaginateUsrs({ pageSize = 20 } = {}) {
+    /**
+     * @type {import("solid-js").Signal<import('@/entities/usrs').Usr[]>}
+     */
+    const [usrs, setUsrs] = createSignal([])
+    const [page, setPage] = createSignal(1)
+    const [total, setTotal] = createSignal(0)
+    const [loading, setLoading] = createSignal(true)
+    const [search, setSearch] = createSignal('')
+    const [role, setRole] = createSignal(undefined)
+
+    const fetch = async (pg, term, roleFilter) => {
+        setLoading(true)
+        try {
+            const res = await apiPaginateUsrs(pg, pageSize, term, roleFilter)
+            setUsrs(res.data)
+            setTotal(res.total_count)
+            setPage(res.page)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    onMount(() => {
+        fetch(1, '', undefined)
+    })
+
+    return {
+        usrs,
+        page,
+        total,
+        loading,
+        search,
+        setSearch,
+        role,
+        setRole,
+        goTo: pg => fetch(pg, search(), role()),
+        refresh: () => fetch(page(), search(), role()),
+        setPage: pg => fetch(pg, search(), role())
+    }
+}

@@ -8,7 +8,7 @@ import { reqJSON } from '@shared/api/client'
  * @returns {Promise<import('@/entities/usrs').Usr | null }
  */
 export async function apiGetMe() {
-    return await reqJSON('/api/v1/usrs/me').catch(err => {
+    return reqJSON('/api/v1/usrs/me').catch(err => {
         if (err instanceof ApiUnauthenticatedError) {
             return null
         }
