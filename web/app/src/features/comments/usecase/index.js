@@ -1,9 +1,13 @@
 import { createEffect, createSignal } from 'solid-js'
 
-import { apiGetComments, apiCreateComment, apiDeleteComment } from '@/entities/comments/api'
+import {
+    apiCreateComment,
+    apiDeleteComment,
+    apiGetComments
+} from '@/entities/comments/api'
 
 export function useGetComments(/** @type {() => string} */ getNodeId) {
-    const [comments, setComments] = createSignal([])
+    const [comments, setComments] = createSignal(new Array())
     const [loading, setLoading] = createSignal(false)
 
     createEffect(() => {
@@ -16,20 +20,25 @@ export function useGetComments(/** @type {() => string} */ getNodeId) {
             .finally(() => setLoading(false))
     })
 
-    return { comments, loading, refresh: () => apiGetComments(getNodeId()).then(setComments) }
+    return {
+        comments,
+        loading,
+        refresh: () => apiGetComments(getNodeId()).then(setComments)
+    }
 }
 
 export function useCreateComment() {
     const [loading, setLoading] = createSignal(false)
 
     const create = async (nodeId, content) => {
-        const { buildCreateCommentDTO } = await import('@/entities/comments/api')
-        const [valid, dto] = buildCreateCommentDTO(nodeId, content)
+        const { buildCreateCommentDTO } =
+            await import('@/entities/comments/api')
+        const [valid, dto] = buildCreateCommentDTO(content)
         if (!valid) return [false, dto]
 
         setLoading(true)
         try {
-            const comment = await apiCreateComment(dto)
+            const comment = await apiCreateComment(nodeId, dto)
             return [true, comment]
         } catch (e) {
             return [false, { general: e.message }]

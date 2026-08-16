@@ -4,7 +4,6 @@ import { reqJSON } from '@/shared/api/client'
 
 export class CreateCommentDTO {
     static #schema = z.strictObject({
-        node_id: z.uuid('Node ID must be a valid UUID.'),
         content: z
             .string('Content must be a string.')
             .min(1, 'Content is required.')
@@ -15,8 +14,7 @@ export class CreateCommentDTO {
         return structuredClone(CreateCommentDTO.#schema)
     }
 
-    constructor({ node_id, content }) {
-        this.node_id = node_id
+    constructor({ content }) {
         this.content = content
     }
 
@@ -24,8 +22,12 @@ export class CreateCommentDTO {
         return { node_id: this.node_id, content: this.content }
     }
 
-    static build(node_id, content) {
-        const r = CreateCommentDTO.#schema.safeParse({ node_id, content })
+    /**
+     * Validates the DTO.
+     * @returns {[false, import('zod').ZodIssue[]] | [true, CreateCommentDTO]}
+     */
+    static build(content) {
+        const r = CreateCommentDTO.#schema.safeParse({ content })
         if (!r.success) {
             const issues = {}
             r.error.issues.forEach(issue => {
@@ -51,11 +53,12 @@ export async function apiGetComments(nodeId) {
 
 /**
  * Create a comment.
+ * @param {string} nodeId
  * @param {CreateCommentDTO} dto
  * @returns {Promise<import('@/entities/nodes').NodeComment>}
  */
-export async function apiCreateComment(dto) {
-    return await reqJSON('/api/v1/comments', {
+export async function apiCreateComment(nodeId, dto) {
+    return await reqJSON(`/api/v1/nodes/${nodeId}/comments`, {
         method: 'POST',
         body: JSON.stringify(dto)
     })
