@@ -75,6 +75,7 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, args *dto.CreateFold
 		ID:          folderID,
 		UsrID:       usr.ID,
 		Name:        args.Name,
+		DisplayName: args.DisplayName,
 		Description: args.Description,
 		Type:        domain.FolderNodeType,
 		Path:        path,

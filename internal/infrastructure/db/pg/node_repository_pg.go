@@ -19,6 +19,7 @@ SELECT
 	n.id,
 	n.usr_id,
 	n.name,
+	n.display_name,
 	n.description,
 	n.path,
 	n.type,
@@ -31,6 +32,7 @@ SELECT
 	n.id,
 	n.usr_id,
 	n.name,
+	n.display_name,
 	n.description,
 	n.path,
 	n.type,
@@ -45,12 +47,13 @@ INSERT INTO fs.nodes (
 	id,
 	usr_id,
 	name,
+	display_name,
 	description,
 	path,
 	type,
 	created_at,
 	updated_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 const deleteNodeQuery string = `DELETE FROM nodes WHERE path <@ (SELECT path FROM nodes WHERE id = $1)`
 
@@ -58,6 +61,7 @@ type nodeRow struct {
 	ID          domain.NodeID `db:"id"`
 	UsrID       domain.UsrID  `db:"usr_id"`
 	Name        string        `db:"name"`
+	DisplayName string        `db:"display_name"`
 	Description string        `db:"description"`
 	Path        string        `db:"path"`
 	Type        string        `db:"type"`
@@ -70,6 +74,7 @@ func (r *nodeRow) ToDomain() domain.Node {
 		ID:          r.ID,
 		UsrID:       r.UsrID,
 		Name:        r.Name,
+		DisplayName: r.DisplayName,
 		Description: r.Description,
 		Path:        domain.NodePath(r.Path),
 		Type:        domain.NodeType(r.Type),
@@ -199,6 +204,7 @@ func (r *nodeRepository) Create(ctx context.Context, n *domain.Node) error {
 		n.ID,
 		n.UsrID,
 		n.Name,
+		n.DisplayName,
 		n.Description,
 		n.Path,
 		n.Type,

@@ -23,13 +23,13 @@ $$ LANGUAGE plpgsql;
 -- Users
 -- ============================
 CREATE TABLE fs.usrs (
-    id           UUID,
+    id           UUID NOT NULL,
     role         VARCHAR(20) NOT NULL,
-    firstname    text NOT NULL,
-    lastname     text NOT NULL,
-    username     text NOT NULL,
-    created_at   timestamptz NOT NULL DEFAULT now(),
-    updated_at   timestamptz NOT NULL DEFAULT now(),
+    firstname    TEXT NOT NULL,
+    lastname     TEXT NOT NULL,
+    username     TEXT NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT usrs_pk PRIMARY KEY (id),
     CONSTRAINT usrs_username_ux UNIQUE (username),
@@ -43,8 +43,8 @@ FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
 CREATE TABLE fs.usr_pwds (
     usr_id      UUID NOT NULL,
     pwd         BYTEA NOT NULL,
-    created_at  timestamptz NOT NULL DEFAULT now(),
-    updated_at  timestamptz NOT NULL DEFAULT now(),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT usr_pwds_pk PRIMARY KEY (usr_id),
     CONSTRAINT usr_pwds_usr_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE
@@ -58,12 +58,12 @@ FOR EACH ROW EXECUTE FUNCTION fs.set_updated_at();
 -- Groups
 -- ============================
 CREATE TABLE fs.groups (
-    id           UUID,
+    id           UUID NOT NULL,
     usr_id       UUID NOT NULL,
-    name         text NOT NULL,
-    description  text,
-    created_at   timestamptz NOT NULL DEFAULT now(),
-    updated_at   timestamptz NOT NULL DEFAULT now(),
+    name         TEXT NOT NULL,
+    description  TEXT NOT NULL DEFAULT "",
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT groups_pk PRIMARY KEY (id),
     CONSTRAINT groups_usr_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE
@@ -99,14 +99,15 @@ CREATE INDEX idx_group_usrs_user
 -- Nodes (tree)
 -- ============================
 CREATE TABLE fs.nodes (
-    id           UUID,
+    id           UUID NOT NULL,
     usr_id       UUID NOT NULL,
-    name         text NOT NULL,
-    description  text,
-    path         ltree NOT NULL,
+    name         TEXT NOT NULL,
+    display_name TEXT NOT NULL DEFAULT "",
+    description  TEXT NOT NULL DEFAULT "",
+    path         LTREE NOT NULL,
     type         VARCHAR(20) NOT NULL,
-    created_at   timestamptz NOT NULL DEFAULT now(),
-    updated_at   timestamptz NOT NULL DEFAULT now(),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT nodes_pk PRIMARY KEY (id),
     CONSTRAINT nodes_usr_fk FOREIGN KEY (usr_id) REFERENCES fs.usrs(id) ON DELETE CASCADE,
@@ -125,20 +126,20 @@ CREATE INDEX idx_nodes_path_gist
 CREATE INDEX idx_nodes_id_path
     ON fs.nodes(id, path);
 
--- Enforce unique name per folder
+-- Enforce unique name per folder and usr
 CREATE UNIQUE INDEX ux_nodes_parent_name
-    ON fs.nodes (subpath(path, 0, nlevel(path)-1), name);
+    ON fs.nodes (usr_id, subpath(path, 0, nlevel(path)-1), name);
 
 -- ============================
 -- Node Comments
 -- ============================
 CREATE TABLE fs.node_comments (
-    id           UUID,
+    id           UUID NOT NULL,
     node_id      UUID NOT NULL,
-    usr_id      UUID NOT NULL,
-    content      text NOT NULL,
-    created_at   timestamptz NOT NULL DEFAULT now(),
-    updated_at   timestamptz NOT NULL DEFAULT now(),
+    usr_id       UUID NOT NULL,
+    content      TEXT NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT node_comments_pk PRIMARY KEY (id),
     CONSTRAINT node_comments_node_fk FOREIGN KEY (node_id) REFERENCES fs.nodes(id) ON DELETE CASCADE,
@@ -175,15 +176,15 @@ CREATE INDEX idx_group_nodes_group
 -- Docs
 -- ============================
 CREATE TABLE fs.docs (
-    id             UUID,
+    id             UUID NOT NULL,
     node_id        UUID NOT NULL,
-    title          text NOT NULL,
-    filename       text NOT NULL,
-    description    text,
-    mime_type      text NOT NULL,
-    size_in_bytes  bigint NOT NULL,
-    created_at     timestamptz NOT NULL DEFAULT now(),
-    updated_at     timestamptz NOT NULL DEFAULT now(),
+    title          TEXT NOT NULL,
+    filename       TEXT NOT NULL,
+    description    TEXT NOT NULL DEFAULT "",
+    mime_type      TEXT NOT NULL,
+    size_in_bytes  BIGINT NOT NULL,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT docs_pk PRIMARY KEY (id),
     CONSTRAINT docs_node_id_ux UNIQUE (node_id),

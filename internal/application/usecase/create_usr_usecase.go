@@ -28,18 +28,18 @@ func (uc *CreateUsrUseCase) Execute(
 	args dto.CreateUsrDTO,
 ) (*domain.Usr, error) {
 	if err := args.Validate(); err != nil {
-		uc.log.WarnContext(ctx, "failed to validate create usr dto", "err", err)
 		return nil, err
 	}
 
-	newUsr, err := uc.usrRepository.GetByUsername(ctx, args.Username)
+	usr, err := uc.usrRepository.GetByUsername(ctx, args.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	if newUsr != nil {
+	if usr != nil {
 		detail := make(map[string]string)
-		detail["reason"] = fmt.Sprintf("username '%s' already in use for another user", args.Username)
+		detail["reason"] = fmt.Sprintf("username '%s' already in use for another user",
+			args.Username)
 		return nil, apperror.ErrConflict(detail)
 	}
 
@@ -64,12 +64,13 @@ func (uc *CreateUsrUseCase) Execute(
 		return nil, err
 	}
 
-	usrNodeRootPath, err := domain.NodePathUsrRoot.NewChildPath(usrNodeRootID)
+	usrNodeRootPath, err := domain.
+		NodePathUsrRoot.NewChildPath(usrNodeRootID)
 	if err != nil {
 		return nil, err
 	}
 
-	newUsr = &domain.Usr{
+	usr = &domain.Usr{
 		ID:        usrID,
 		Username:  args.Username,
 		Role:      args.Role,
@@ -79,18 +80,19 @@ func (uc *CreateUsrUseCase) Execute(
 
 	usrNodeRoot := &domain.Node{
 		ID:          usrNodeRootID,
-		Name:        fmt.Sprintf("%s_usr_root_folder", newUsr.ID),
-		UsrID:       newUsr.ID,
-		Description: "Auto generated root node for particular user.",
+		Name:        fmt.Sprintf("home_%s", usr.ID),
+		DisplayName: "home",
+		UsrID:       usr.ID,
+		Description: fmt.Sprintf("Auto generated root node for particular user ID='%s'.", usr.ID),
 		Type:        domain.FolderNodeType,
 		Path:        usrNodeRootPath,
 	}
 
 	usrRootGroup := &domain.Group{
 		ID:          usrGroupID,
-		UsrID:       newUsr.ID,
-		Name:        fmt.Sprintf("%s_group", newUsr.ID),
-		Description: "Auto generated group for particular user.",
+		UsrID:       usr.ID,
+		Name:        "home group",
+		Description: fmt.Sprintf("Auto generated group for particular user ID='%s'.", usr.ID),
 	}
 
 	nodeRootGroup := &domain.UpsertGroupNode{
@@ -101,7 +103,7 @@ func (uc *CreateUsrUseCase) Execute(
 	usrGroups := col.Set[domain.UpsertGroupUsr]{}
 	usrGroups.Add(domain.UpsertGroupUsr{
 		GroupID: usrRootGroup.ID,
-		UsrID:   newUsr.ID,
+		UsrID:   usr.ID,
 		Access:  domain.GroupOwnerAccess,
 	})
 
@@ -109,51 +111,70 @@ func (uc *CreateUsrUseCase) Execute(
 		for _, v := range args.Access {
 			usrGroups.Add(domain.UpsertGroupUsr{
 				GroupID: v.GroupID,
-				UsrID:   newUsr.ID,
+				UsrID:   usr.ID,
 				Access:  v.Access,
 			})
 		}
 	}
 
-	if err = uc.unitOfWorkFactory.Do(ctx, func(tx domain.UnitOfWork) error {
-		if err := tx.UsrRepository().Create(tx.Ctx(), newUsr); err != nil {
-			uc.log.DebugContext(tx.Ctx(), "error creating usr", "err", err, "stack", debug.Stack())
-			return err
-		}
+	if err = uc.unitOfWorkFactory.
+		Do(ctx, func(tx domain.UnitOfWork) error {
+			if err := tx.UsrRepository().Create(tx.Ctx(), usr); err != nil {
+				uc.log.DebugContext(tx.Ctx(),
+					"error creating usr",
+					"err", err,
+					"stack", debug.Stack())
+				return err
+			}
 
-		if err := tx.UsrPwdRepository().SetPwd(tx.Ctx(), newUsr.ID, pwdHash); err != nil {
-			uc.log.DebugContext(tx.Ctx(), "error creating usr pwd", "err", err, "stack", debug.Stack())
-			return err
-		}
+			if err := tx.UsrPwdRepository().SetPwd(tx.Ctx(), usr.ID, pwdHash); err != nil {
+				uc.log.DebugContext(tx.Ctx(),
+					"error creating usr pwd",
+					"err", err,
+					"stack", debug.Stack())
+				return err
+			}
 
-		if err := tx.NodeRepository().Create(tx.Ctx(), usrNodeRoot); err != nil {
-			uc.log.DebugContext(tx.Ctx(), "error creating usr node", "err", err, "stack", debug.Stack())
-			return err
-		}
+			if err := tx.NodeRepository().Create(tx.Ctx(), usrNodeRoot); err != nil {
+				uc.log.DebugContext(tx.Ctx(),
+					"error creating usr node",
+					"err", err,
+					"stack", debug.Stack())
+				return err
+			}
 
-		if err := tx.GroupRepository().Create(tx.Ctx(), usrRootGroup); err != nil {
-			uc.log.DebugContext(tx.Ctx(), "error creating usr group", "err", err, "stack", debug.Stack())
-			return err
-		}
+			if err := tx.GroupRepository().Create(tx.Ctx(), usrRootGroup); err != nil {
+				uc.log.DebugContext(tx.Ctx(),
+					"error creating usr group",
+					"err", err,
+					"stack", debug.Stack())
+				return err
+			}
 
-		if err := tx.GroupNodeRepository().Upsert(tx.Ctx(), nodeRootGroup); err != nil {
+			if err := tx.GroupNodeRepository().Upsert(tx.Ctx(), nodeRootGroup); err != nil {
 
-			uc.log.WarnContext(tx.Ctx(), "error creating usr group node", "err", err, "stack", debug.Stack())
-			return err
-		}
+				uc.log.WarnContext(tx.Ctx(),
+					"error creating usr group node",
+					"err", err,
+					"stack", debug.Stack())
+				return err
+			}
 
-		if err := tx.GroupUsrRepository().UpsertAll(tx.Ctx(), usrGroups.Slice()); err != nil {
+			if err := tx.GroupUsrRepository().UpsertAll(tx.Ctx(), usrGroups.Slice()); err != nil {
 
-			uc.log.DebugContext(tx.Ctx(), "error creating usr group usr", "err", err, "stack", debug.Stack())
-			return err
-		}
+				uc.log.DebugContext(tx.Ctx(),
+					"error creating usr group usr",
+					"err", err,
+					"stack", debug.Stack())
+				return err
+			}
 
-		return nil
-	}); err != nil {
+			return nil
+		}); err != nil {
 		return nil, err
 	}
 
-	return newUsr, nil
+	return usr, nil
 }
 
 func NewCreateUsrUseCase(

@@ -31,6 +31,7 @@ func (dto *FolderNodeDTO) IsFolder() (isFolder bool, chldr []domain.Node) {
 type CreateFolderDTO struct {
 	ParentID    string `json:"parent_id" validate:"required,uuid"`
 	Name        string `json:"name" validate:"required,min=1,max=255,excludes=\\/"`
+	DisplayName string `json:"display_name" validate:"max=255"`
 	Description string `json:"description" validate:"max=255"`
 }
 

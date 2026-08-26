@@ -65,6 +65,7 @@ type (
 		ID          NodeID
 		UsrID       UsrID
 		Name        string
+		DisplayName string
 		Description string
 		Path        NodePath
 		Type        NodeType
