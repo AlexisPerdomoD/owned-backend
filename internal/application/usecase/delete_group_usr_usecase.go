@@ -9,11 +9,11 @@ import (
 )
 
 type DeleteGroupUsrUseCase struct {
-	accessChecker
+	*accessChecker
 }
 
 func (uc *DeleteGroupUsrUseCase) Execute(ctx context.Context, groupID domain.GroupID, targetUsrID domain.UsrID) error {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return err
 	}
@@ -24,7 +24,7 @@ func (uc *DeleteGroupUsrUseCase) Execute(ctx context.Context, groupID domain.Gro
 		return apperror.ErrForbidden(detail)
 	}
 
-	hasAccssOnGroup, err := uc.hasGroupAccessTo(ctx, usr, groupID, domain.GroupOwnerAccess)
+	hasAccssOnGroup, err := uc.checkGroupAccessTo(ctx, groupID, domain.GroupOwnerAccess)
 	if err != nil {
 		return err
 	}
@@ -39,9 +39,8 @@ func (uc *DeleteGroupUsrUseCase) Execute(ctx context.Context, groupID domain.Gro
 }
 
 func NewDeleteGroupUsrUseCase(
-	gur domain.GroupUsrRepository,
+	ac *accessChecker,
 ) *DeleteGroupUsrUseCase {
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &DeleteGroupUsrUseCase{ac}
 }

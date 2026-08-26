@@ -12,12 +12,12 @@ import (
 )
 
 type CreateFolderUseCase struct {
-	accessChecker
+	*accessChecker
 	nodeRepository domain.NodeRepository
 }
 
 func (uc *CreateFolderUseCase) Execute(ctx context.Context, args *dto.CreateFolderDTO) (*domain.Node, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, args *dto.CreateFold
 		return nil, apperror.ErrBadRequest(detail)
 	}
 
-	canDo, err := uc.hasNodeAccessTo(ctx, usr, parent.Path, domain.GroupWriteAccess)
+	canDo, err := uc.checkNodeAccessTo(ctx, parent.Path, domain.GroupWriteAccess)
 	if err != nil {
 		return nil, err
 	}
@@ -89,10 +89,9 @@ func (uc *CreateFolderUseCase) Execute(ctx context.Context, args *dto.CreateFold
 
 func NewCreateFolderUseCase(
 	nr domain.NodeRepository,
-	gur domain.GroupUsrRepository,
+	ac *accessChecker,
 ) *CreateFolderUseCase {
 	helper.NotNilOrPanic(nr, "NodeRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &CreateFolderUseCase{ac, nr}
 }

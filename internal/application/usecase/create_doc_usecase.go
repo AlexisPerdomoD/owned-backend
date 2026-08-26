@@ -22,7 +22,7 @@ type CreateDocUseCaseResponse struct {
 }
 
 type CreateDocUseCase struct {
-	accessChecker
+	*accessChecker
 	docRepository     domain.DocRepository
 	nodeRepository    domain.NodeRepository
 	unitOfWorkFactory domain.UnitOfWorkFactory
@@ -33,7 +33,7 @@ type CreateDocUseCase struct {
 func (uc *CreateDocUseCase) Execute(
 	ctx context.Context,
 	arg *dto.CreateDocInputDTO) (*CreateDocUseCaseResponse, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (uc *CreateDocUseCase) Execute(
 		return nil, apperror.ErrBadRequest(detail)
 	}
 
-	canDo, err := uc.hasNodeAccessTo(ctx, usr, folder.Path, domain.GroupWriteAccess)
+	canDo, err := uc.checkNodeAccessTo(ctx, folder.Path, domain.GroupWriteAccess)
 	if err != nil {
 		uc.logger.WarnContext(ctx, "failed to check if user can access node", "nodeID", folder.ID, "error", err)
 		return nil, err
@@ -163,10 +163,10 @@ func titleFromFilename(filename string) string {
 func NewCreateDocUseCase(
 	dr domain.DocRepository,
 	nr domain.NodeRepository,
-	gur domain.GroupUsrRepository,
 	uowf domain.UnitOfWorkFactory,
 	storage storage.StorageManager,
 	mainLogger *slog.Logger,
+	ac *accessChecker,
 ) *CreateDocUseCase {
 	helper.NotNilOrPanic(dr, "DocRepository")
 	helper.NotNilOrPanic(nr, "NodeRepository")
@@ -174,6 +174,5 @@ func NewCreateDocUseCase(
 	helper.NotNilOrPanic(storage, "StorageManager")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
 	logger := mainLogger.With("usecase", "CreateDocUseCase")
-	ac := accessChecker{gur}
 	return &CreateDocUseCase{ac, dr, nr, uowf, storage, logger}
 }

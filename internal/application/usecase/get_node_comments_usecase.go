@@ -10,17 +10,12 @@ import (
 )
 
 type GetNodeCommentsUseCase struct {
-	accessChecker
+	*accessChecker
 	nodeRepository        domain.NodeRepository
 	nodeCommentRepository domain.NodeCommentRepository
 }
 
 func (uc *GetNodeCommentsUseCase) Execute(ctx context.Context, nodeID domain.NodeID) ([]domain.NodeComment, error) {
-	usr, err := getUsrIdentity(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	node, err := uc.nodeRepository.GetByID(ctx, nodeID)
 	if err != nil {
 		return nil, err
@@ -32,7 +27,7 @@ func (uc *GetNodeCommentsUseCase) Execute(ctx context.Context, nodeID domain.Nod
 		return nil, apperror.ErrNotFound(detail)
 	}
 
-	canDo, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupReadOnlyAccess)
+	canDo, err := uc.checkNodeAccessTo(ctx, node.Path, domain.GroupReadOnlyAccess)
 	if err != nil {
 		return nil, err
 	}
@@ -49,11 +44,10 @@ func (uc *GetNodeCommentsUseCase) Execute(ctx context.Context, nodeID domain.Nod
 func NewGetNodeCommentsUseCase(
 	nr domain.NodeRepository,
 	ncr domain.NodeCommentRepository,
-	gur domain.GroupUsrRepository,
+	ac *accessChecker,
 ) *GetNodeCommentsUseCase {
 	helper.NotNilOrPanic(nr, "NodeRepository")
 	helper.NotNilOrPanic(ncr, "NodeCommentRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &GetNodeCommentsUseCase{ac, nr, ncr}
 }

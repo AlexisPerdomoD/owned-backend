@@ -11,14 +11,15 @@ import (
 )
 
 type CreateGroupUseCase struct {
-	uow domain.UnitOfWorkFactory
+	identityChecker
+	unitOfWorkFactory domain.UnitOfWorkFactory
 }
 
 func (uc *CreateGroupUseCase) Execute(
 	ctx context.Context,
 	args *dto.CreateGroupDTO,
 ) (*domain.Group, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -47,17 +48,18 @@ func (uc *CreateGroupUseCase) Execute(
 		Access:  domain.GroupOwnerAccess,
 	}
 
-	if err := uc.uow.Do(ctx, func(tx domain.UnitOfWork) error {
-		if err := tx.GroupRepository().Create(tx.Ctx(), group); err != nil {
-			return err
-		}
+	if err := uc.unitOfWorkFactory.
+		Do(ctx, func(tx domain.UnitOfWork) error {
+			if err := tx.GroupRepository().Create(tx.Ctx(), group); err != nil {
+				return err
+			}
 
-		if err := tx.GroupUsrRepository().Upsert(tx.Ctx(), groupUsr); err != nil {
-			return err
-		}
+			if err := tx.GroupUsrRepository().Upsert(tx.Ctx(), groupUsr); err != nil {
+				return err
+			}
 
-		return nil
-	}); err != nil {
+			return nil
+		}); err != nil {
 		return nil, err
 	}
 
@@ -66,5 +68,5 @@ func (uc *CreateGroupUseCase) Execute(
 
 func NewCreateGroupUseCase(uowf domain.UnitOfWorkFactory) *CreateGroupUseCase {
 	helper.NotNilOrPanic(uowf, "UnitOfWorkFactory")
-	return &CreateGroupUseCase{uowf}
+	return &CreateGroupUseCase{unitOfWorkFactory: uowf}
 }

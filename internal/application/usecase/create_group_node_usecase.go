@@ -10,13 +10,13 @@ import (
 )
 
 type CreateGroupNodeUseCase struct {
-	accessChecker
+	*accessChecker
 	groupNodeRepository domain.GroupNodeRepository
 	nodeRepository      domain.NodeRepository
 }
 
 func (uc *CreateGroupNodeUseCase) Execute(ctx context.Context, groupID domain.GroupID, nodeID domain.NodeID) error {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func (uc *CreateGroupNodeUseCase) Execute(ctx context.Context, groupID domain.Gr
 		return apperror.ErrForbidden(detail)
 	}
 
-	hasAccssOnGroup, err := uc.hasGroupAccessTo(ctx, usr, groupID, domain.GroupOwnerAccess)
+	hasAccssOnGroup, err := uc.checkGroupAccessTo(ctx, groupID, domain.GroupOwnerAccess)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (uc *CreateGroupNodeUseCase) Execute(ctx context.Context, groupID domain.Gr
 		return apperror.ErrNotFound(detail)
 	}
 
-	hasAccssOnNode, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupOwnerAccess)
+	hasAccssOnNode, err := uc.checkNodeAccessTo(ctx, node.Path, domain.GroupOwnerAccess)
 	if err != nil {
 		return err
 	}
@@ -88,13 +88,12 @@ func (uc *CreateGroupNodeUseCase) Execute(ctx context.Context, groupID domain.Gr
 func NewCreateGroupNodeUseCase(
 	gr domain.GroupRepository,
 	gnr domain.GroupNodeRepository,
-	gur domain.GroupUsrRepository,
 	nr domain.NodeRepository,
+	ac *accessChecker,
 ) *CreateGroupNodeUseCase {
 	helper.NotNilOrPanic(gr, "GroupRepository")
 	helper.NotNilOrPanic(gnr, "GroupNodeRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	helper.NotNilOrPanic(nr, "NodeRepository")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &CreateGroupNodeUseCase{ac, gnr, nr}
 }

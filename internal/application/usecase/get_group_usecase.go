@@ -11,17 +11,13 @@ import (
 )
 
 type GetGroupUseCase struct {
-	accessChecker
+	*accessChecker
 	groupRepository domain.GroupRepository
 	usrRepository   domain.UsrRepository
 	nodeRepository  domain.NodeRepository
 }
 
 func (uc *GetGroupUseCase) Execute(ctx context.Context, groupID domain.GroupID) (*dto.PopulateGroupDTO, error) {
-	usr, err := getUsrIdentity(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	group, err := uc.groupRepository.GetByID(ctx, groupID)
 	if err != nil {
@@ -33,7 +29,7 @@ func (uc *GetGroupUseCase) Execute(ctx context.Context, groupID domain.GroupID) 
 		return nil, apperror.ErrNotFound(detail)
 	}
 
-	canDo, err := uc.hasGroupAccessTo(ctx, usr, group.ID, domain.GroupReadOnlyAccess)
+	canDo, err := uc.checkGroupAccessTo(ctx, group.ID, domain.GroupReadOnlyAccess)
 	if err != nil {
 		return nil, err
 	}
@@ -68,12 +64,11 @@ func NewGetGroupUseCase(
 	ur domain.UsrRepository,
 	nr domain.NodeRepository,
 	gr domain.GroupRepository,
-	gur domain.GroupUsrRepository,
+	ac *accessChecker,
 ) *GetGroupUseCase {
 	helper.NotNilOrPanic(gr, "GroupRepository")
 	helper.NotNilOrPanic(ur, "UsrRepository")
 	helper.NotNilOrPanic(nr, "NodeRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &GetGroupUseCase{ac, gr, ur, nr}
 }

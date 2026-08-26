@@ -14,7 +14,7 @@ import (
 )
 
 type DeleteNodeUseCase struct {
-	accessChecker
+	*accessChecker
 	nodeRepository domain.NodeRepository
 	docRepository  domain.DocRepository
 	storage        storage.StorageManager
@@ -22,7 +22,7 @@ type DeleteNodeUseCase struct {
 }
 
 func (uc *DeleteNodeUseCase) Execute(ctx context.Context, nodeID domain.NodeID) error {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (uc *DeleteNodeUseCase) Execute(ctx context.Context, nodeID domain.NodeID) 
 		return apperror.ErrNotFound(map[string]string{"error": "node was not found by id=" + nodeID.String()})
 	}
 
-	canDo, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupWriteAccess)
+	canDo, err := uc.checkNodeAccessTo(ctx, node.Path, domain.GroupWriteAccess)
 	if err != nil {
 		uc.log.WarnContext(ctx, "failed to check if user can access node",
 			"nodeID", nodeID,
@@ -106,16 +106,15 @@ func (uc *DeleteNodeUseCase) deleteDocsAsync(docs []domain.Doc) {
 func NewDeleteNodeUseCase(
 	nr domain.NodeRepository,
 	dr domain.DocRepository,
-	gur domain.GroupUsrRepository,
 	storage storage.StorageManager,
 	mainLogger *slog.Logger,
+	ac *accessChecker,
 ) *DeleteNodeUseCase {
 	helper.NotNilOrPanic(nr, "NodeRepository")
 	helper.NotNilOrPanic(dr, "DocRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	helper.NotNilOrPanic(storage, "StorageManager")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	logger := mainLogger.With("usecase", "DeleteNodeUseCase")
 
 	return &DeleteNodeUseCase{ac, nr, dr, storage, logger}

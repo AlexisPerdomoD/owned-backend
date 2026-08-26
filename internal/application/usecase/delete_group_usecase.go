@@ -10,12 +10,12 @@ import (
 )
 
 type DeleteGroupUseCase struct {
-	accessChecker
+	*accessChecker
 	groupRepository domain.GroupRepository
 }
 
 func (uc *DeleteGroupUseCase) Execute(ctx context.Context, groupID domain.GroupID) (*domain.Group, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (uc *DeleteGroupUseCase) Execute(ctx context.Context, groupID domain.GroupI
 		return nil, apperror.ErrNotFound(detail)
 	}
 
-	canDo, err := uc.hasGroupAccessTo(ctx, usr, group.ID, domain.GroupOwnerAccess)
+	canDo, err := uc.checkGroupAccessTo(ctx, group.ID, domain.GroupOwnerAccess)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +55,8 @@ func (uc *DeleteGroupUseCase) Execute(ctx context.Context, groupID domain.GroupI
 	return group, nil
 }
 
-func NewDeleteGroupUseCase(gr domain.GroupRepository, gur domain.GroupUsrRepository) *DeleteGroupUseCase {
+func NewDeleteGroupUseCase(gr domain.GroupRepository, ac *accessChecker) *DeleteGroupUseCase {
 	helper.NotNilOrPanic(gr, "groupRepository")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &DeleteGroupUseCase{ac, gr}
 }

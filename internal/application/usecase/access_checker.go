@@ -7,6 +7,7 @@ import (
 	"ownned/internal/application/auth"
 	"ownned/internal/domain"
 	"ownned/pkg/apperror"
+	"ownned/pkg/helper"
 
 	"github.com/google/uuid"
 )
@@ -17,8 +18,10 @@ type usrIdentity struct {
 	Role domain.UsrRole
 }
 
+type identityChecker struct{}
+
 // getUsrIdentity returns the user identity from the context
-func getUsrIdentity(ctx context.Context) (i usrIdentity, err error) {
+func (ic identityChecker) getUsrIdentity(ctx context.Context) (i usrIdentity, err error) {
 	s, err := auth.GetSession(ctx)
 	if err != nil {
 		return i, err
@@ -44,21 +47,26 @@ func getUsrIdentity(ctx context.Context) (i usrIdentity, err error) {
 
 // accessChecker is an abstraction to access business logic related
 type accessChecker struct {
+	identityChecker
 	groupUsrRepository domain.GroupUsrRepository
 }
 
-// hasNodeAccessTo checks if a user has access to a node based on the user's role and the access of the node to the user
-func (ac *accessChecker) hasNodeAccessTo(
+// checkNodeAccessTo checks if a user has access to a node based on the user's role and the access of the node to the user
+func (ic *accessChecker) checkNodeAccessTo(
 	ctx context.Context,
-	u usrIdentity,
 	pth domain.NodePath,
 	accs domain.GroupUsrAccess,
 ) (bool, error) {
+	u, err := ic.getUsrIdentity(ctx)
+	if err != nil {
+		return false, err
+	}
+
 	if u.Role == domain.SuperUsrRole {
 		return true, nil
 	}
 
-	if err := ac.groupUsrRepository.HasAccess(ctx, u.ID, pth, accs); err != nil {
+	if err := ic.groupUsrRepository.HasAccess(ctx, u.ID, pth, accs); err != nil {
 		if errors.Is(err, domain.ErrNoAccess) {
 			return false, nil
 		}
@@ -69,18 +77,22 @@ func (ac *accessChecker) hasNodeAccessTo(
 	return true, nil
 }
 
-// hasGroupAccessTo checks if a user has access to a group based on the user's role and the access of the group to the user
-func (ac *accessChecker) hasGroupAccessTo(
+// checkGroupAccessTo checks if a user has access to a group based on the user's role and the access of the group to the user
+func (ic *accessChecker) checkGroupAccessTo(
 	ctx context.Context,
-	u usrIdentity,
 	groupID domain.GroupID,
 	reqAccs domain.GroupUsrAccess,
 ) (bool, error) {
+	u, err := ic.getUsrIdentity(ctx)
+	if err != nil {
+		return false, err
+	}
+
 	if u.Role == domain.SuperUsrRole {
 		return true, nil
 	}
 
-	accs, err := ac.groupUsrRepository.GetGroupAccess(ctx, u.ID, groupID)
+	accs, err := ic.groupUsrRepository.GetGroupAccess(ctx, u.ID, groupID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNoAccess) {
 			return false, nil
@@ -90,4 +102,9 @@ func (ac *accessChecker) hasGroupAccessTo(
 	}
 
 	return accs.IsEquivalent(reqAccs), nil
+}
+
+func NewAccessChecker(gur domain.GroupUsrRepository) *accessChecker {
+	helper.NotNilOrPanic(gur, "GroupUsrRepository")
+	return &accessChecker{groupUsrRepository: gur}
 }

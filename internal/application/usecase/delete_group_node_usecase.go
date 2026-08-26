@@ -9,12 +9,12 @@ import (
 )
 
 type DeleteGroupNodeUseCase struct {
-	accessChecker
+	*accessChecker
 	groupNodeRepository domain.GroupNodeRepository
 }
 
 func (uc *DeleteGroupNodeUseCase) Execute(ctx context.Context, groupID domain.GroupID, nodeID domain.NodeID) error {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func (uc *DeleteGroupNodeUseCase) Execute(ctx context.Context, groupID domain.Gr
 		return apperror.ErrForbidden(detail)
 	}
 
-	hasAccssOnGroup, err := uc.hasGroupAccessTo(ctx, usr, groupID, domain.GroupOwnerAccess)
+	hasAccssOnGroup, err := uc.checkGroupAccessTo(ctx, groupID, domain.GroupOwnerAccess)
 	if err != nil {
 		return err
 	}
@@ -42,11 +42,10 @@ func (uc *DeleteGroupNodeUseCase) Execute(ctx context.Context, groupID domain.Gr
 func NewDeleteGroupNodeUseCase(
 	gr domain.GroupRepository,
 	gnr domain.GroupNodeRepository,
-	gur domain.GroupUsrRepository,
+	ac *accessChecker,
 ) *DeleteGroupNodeUseCase {
 	helper.NotNilOrPanic(gr, "GroupRepository")
 	helper.NotNilOrPanic(gnr, "GroupNodeRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &DeleteGroupNodeUseCase{ac, gnr}
 }

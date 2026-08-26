@@ -13,7 +13,7 @@ import (
 )
 
 type DeleteDocUseCase struct {
-	accessChecker
+	*accessChecker
 	storage        storage.StorageManager
 	docRepository  domain.DocRepository
 	nodeRepository domain.NodeRepository
@@ -21,7 +21,7 @@ type DeleteDocUseCase struct {
 }
 
 func (uc *DeleteDocUseCase) Execute(ctx context.Context, docID domain.DocID) (*dto.FileNodeDTO, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -56,9 +56,12 @@ func (uc *DeleteDocUseCase) Execute(ctx context.Context, docID domain.DocID) (*d
 		return nil, err
 	}
 
-	canDo, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupWriteAccess)
+	canDo, err := uc.checkNodeAccessTo(ctx, node.Path, domain.GroupWriteAccess)
 	if err != nil {
-		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", doc.NodeID, "error", err)
+		uc.log.WarnContext(ctx,
+			"failed to check if user can access node",
+			"nodeID", doc.NodeID,
+			"error", err)
 		return nil, err
 	}
 
@@ -69,7 +72,10 @@ func (uc *DeleteDocUseCase) Execute(ctx context.Context, docID domain.DocID) (*d
 	}
 
 	if err := uc.storage.Delete(ctx, doc.ID); err != nil {
-		uc.log.WarnContext(ctx, "failed to delete doc from storage", "docID", docID, "err", err)
+		uc.log.WarnContext(ctx,
+			"failed to delete doc from storage",
+			"docID", docID,
+			"err", err)
 		return nil, err
 	}
 
@@ -84,15 +90,15 @@ func NewDeleteDocUseCase(
 	s storage.StorageManager,
 	dr domain.DocRepository,
 	nr domain.NodeRepository,
-	gur domain.GroupUsrRepository,
 	mainLogger *slog.Logger,
+	ac *accessChecker,
 ) *DeleteDocUseCase {
 	helper.NotNilOrPanic(s, "StorageManager")
 	helper.NotNilOrPanic(dr, "DocRepository")
 	helper.NotNilOrPanic(nr, "NodeRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
+	helper.NotNilOrPanic(ac, "accessChecker")
 	log := mainLogger.With("usecase", "DeleteDocUseCase")
-	ac := accessChecker{gur}
+
 	return &DeleteDocUseCase{ac, s, dr, nr, log}
 }

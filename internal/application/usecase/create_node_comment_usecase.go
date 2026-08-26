@@ -13,7 +13,7 @@ import (
 )
 
 type CreateNodeCommentUseCase struct {
-	accessChecker
+	*accessChecker
 	nodeRepository        domain.NodeRepository
 	nodeCommentRepository domain.NodeCommentRepository
 	log                   *slog.Logger
@@ -24,7 +24,7 @@ func (uc *CreateNodeCommentUseCase) Execute(
 	nodeID domain.NodeID,
 	content string,
 ) (*domain.NodeComment, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -40,9 +40,12 @@ func (uc *CreateNodeCommentUseCase) Execute(
 		return nil, apperror.ErrNotFound(detail)
 	}
 
-	canDo, err := uc.hasNodeAccessTo(ctx, usr, node.Path, domain.GroupReadOnlyAccess)
+	canDo, err := uc.checkNodeAccessTo(ctx, node.Path, domain.GroupReadOnlyAccess)
 	if err != nil {
-		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", nodeID, "error", err)
+		uc.log.WarnContext(ctx,
+			"failed to check if user can access node",
+			"nodeID", nodeID,
+			"error", err)
 		return nil, err
 	}
 
@@ -56,6 +59,7 @@ func (uc *CreateNodeCommentUseCase) Execute(
 	if err != nil {
 		return nil, err
 	}
+
 	comment := &domain.NodeComment{
 		ID:      commentID,
 		NodeID:  node.ID,
@@ -73,14 +77,13 @@ func (uc *CreateNodeCommentUseCase) Execute(
 func NewCreateNodeCommentUseCase(
 	nr domain.NodeRepository,
 	ncr domain.NodeCommentRepository,
-	gur domain.GroupUsrRepository,
 	mainLogger *slog.Logger,
+	ac *accessChecker,
 ) *CreateNodeCommentUseCase {
 	helper.NotNilOrPanic(nr, "NodeRepository")
 	helper.NotNilOrPanic(ncr, "NodeCommentRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
+	helper.NotNilOrPanic(ac, "accessChecker")
 	log := mainLogger.With("usecase", "CreateNodeCommentUseCase")
-	ac := accessChecker{gur}
 	return &CreateNodeCommentUseCase{ac, nr, ncr, log}
 }

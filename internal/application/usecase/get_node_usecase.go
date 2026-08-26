@@ -12,21 +12,19 @@ import (
 )
 
 type GetNodeUseCase struct {
-	accessChecker
+	*accessChecker
 	nr  domain.NodeRepository
 	dr  domain.DocRepository
 	log *slog.Logger
 }
 
 func (uc *GetNodeUseCase) Execute(ctx context.Context, nodeID domain.NodeID) (domain.NodeLike, error) {
-	usr, err := getUsrIdentity(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	n, err := uc.nr.GetByID(ctx, nodeID)
 	if err != nil {
-		uc.log.WarnContext(ctx, "failed to get node by ID", "nodeID", nodeID, "error", err)
+		uc.log.WarnContext(ctx,
+			"failed to get node by ID",
+			"nodeID", nodeID,
+			"error", err)
 		return nil, err
 	}
 
@@ -36,9 +34,12 @@ func (uc *GetNodeUseCase) Execute(ctx context.Context, nodeID domain.NodeID) (do
 		return nil, apperror.ErrNotFound(detail)
 	}
 
-	canDo, err := uc.hasNodeAccessTo(ctx, usr, n.Path, domain.GroupReadOnlyAccess)
+	canDo, err := uc.checkNodeAccessTo(ctx, n.Path, domain.GroupReadOnlyAccess)
 	if err != nil {
-		uc.log.WarnContext(ctx, "failed to check if user can access node", "nodeID", nodeID, "error", err)
+		uc.log.WarnContext(ctx,
+			"failed to check if user can access node",
+			"nodeID", nodeID,
+			"error", err)
 		return nil, err
 	}
 
@@ -76,14 +77,13 @@ func (uc *GetNodeUseCase) Execute(ctx context.Context, nodeID domain.NodeID) (do
 func NewGetNodeByIDUseCase(
 	nr domain.NodeRepository,
 	dr domain.DocRepository,
-	gur domain.GroupUsrRepository,
 	mainLogger *slog.Logger,
+	ac *accessChecker,
 ) *GetNodeUseCase {
 	helper.NotNilOrPanic(nr, "NodeRepository")
 	helper.NotNilOrPanic(dr, "DocRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
+	helper.NotNilOrPanic(ac, "accessChecker")
 	log := mainLogger.With("usecase", "GetNodeUseCase")
-	ac := accessChecker{gur}
 	return &GetNodeUseCase{ac, nr, dr, log}
 }

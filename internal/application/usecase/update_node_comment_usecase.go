@@ -10,11 +10,12 @@ import (
 )
 
 type UpdateNodeCommentUseCase struct {
+	identityChecker
 	nodeCommentRepository domain.NodeCommentRepository
 }
 
 func (uc *UpdateNodeCommentUseCase) Execute(ctx context.Context, commentID domain.NodeCommentID, content string) (*domain.NodeComment, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,5 +51,5 @@ func NewUpdateNodeCommentUseCase(
 	ncr domain.NodeCommentRepository,
 ) *UpdateNodeCommentUseCase {
 	helper.NotNilOrPanic(ncr, "NodeCommentRepository")
-	return &UpdateNodeCommentUseCase{ncr}
+	return &UpdateNodeCommentUseCase{nodeCommentRepository: ncr}
 }

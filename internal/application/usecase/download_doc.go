@@ -11,7 +11,7 @@ import (
 )
 
 type DownloadDocUseCase struct {
-	accessChecker
+	*accessChecker
 	nodeRepository domain.NodeRepository
 	docRepository  domain.DocRepository
 	storage        storage.StorageManager
@@ -20,11 +20,6 @@ type DownloadDocUseCase struct {
 func (uc *DownloadDocUseCase) Execute(
 	ctx context.Context, cmd storage.DownloadCmd,
 ) (*domain.Doc, io.ReadCloser, error) {
-	usr, err := getUsrIdentity(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	doc, err := uc.docRepository.GetByID(ctx, cmd.Key)
 	if err != nil {
 		return nil, nil, err
@@ -45,9 +40,8 @@ func (uc *DownloadDocUseCase) Execute(
 		return nil, nil, apperror.ErrIlegalDBState(nil)
 	}
 
-	hasAccessTo, err := uc.hasNodeAccessTo(
+	hasAccessTo, err := uc.checkNodeAccessTo(
 		ctx,
-		usr,
 		node.Path,
 		domain.GroupReadOnlyAccess)
 	if err != nil {
@@ -71,14 +65,13 @@ func (uc *DownloadDocUseCase) Execute(
 func NewDownloadDocUseCase(
 	nr domain.NodeRepository,
 	dr domain.DocRepository,
-	gur domain.GroupUsrRepository,
 	st storage.StorageManager,
+	ac *accessChecker,
 ) *DownloadDocUseCase {
 	helper.NotNilOrPanic(nr, "NodeRepository")
 	helper.NotNilOrPanic(dr, "DocRepository")
-	helper.NotNilOrPanic(gur, "GroupUseRepository")
 	helper.NotNilOrPanic(st, "StorageManager")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &DownloadDocUseCase{
 		accessChecker:  ac,
 		nodeRepository: nr,

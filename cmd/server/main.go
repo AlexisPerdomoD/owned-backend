@@ -89,6 +89,9 @@ func main() {
 	unitOfWorkFactory := pg.
 		NewUnitOfWorkFactory(db, lg, time.Second*30)
 
+	accessChecker := usecase.
+		NewAccessChecker(groupUsrRepository)
+
 	// =========================================================================
 	// MIDLEWARES
 	// =========================================================================
@@ -105,7 +108,7 @@ func main() {
 			usrRepository,
 			nodeRepository,
 			groupRepository,
-			groupUsrRepository)
+			accessChecker)
 	paginateGroup := usecase.
 		NewPaginateGroupUseCase(groupRepository)
 	updateGroup := usecase.
@@ -116,25 +119,25 @@ func main() {
 	deleteGroup := usecase.
 		NewDeleteGroupUseCase(
 			groupRepository,
-			groupUsrRepository)
+			accessChecker)
 	createGroupNode := usecase.
 		NewCreateGroupNodeUseCase(
 			groupRepository,
 			groupNodeRepository,
-			groupUsrRepository,
-			nodeRepository)
+			nodeRepository,
+			accessChecker)
+
 	deleteGroupNode := usecase.
 		NewDeleteGroupNodeUseCase(
 			groupRepository,
 			groupNodeRepository,
-			groupUsrRepository)
+			accessChecker)
 	upsertGroupUsr := usecase.
 		NewUpsertGroupUsrUseCase(
 			usrRepository,
-			groupUsrRepository)
+			accessChecker)
 	deleteGroupUsr := usecase.
-		NewDeleteGroupUsrUseCase(
-			groupUsrRepository)
+		NewDeleteGroupUsrUseCase(accessChecker)
 
 	// ROUTES
 	groupH := handler.
@@ -250,13 +253,13 @@ func main() {
 	createFolder := usecase.
 		NewCreateFolderUseCase(
 			nodeRepository,
-			groupUsrRepository)
+			accessChecker)
 	getNode := usecase.
 		NewGetNodeByIDUseCase(
 			nodeRepository,
 			docRepository,
-			groupUsrRepository,
-			lg)
+			lg,
+			accessChecker)
 
 	// NODES
 	nodeH := handler.
@@ -283,21 +286,19 @@ func main() {
 		NewGetNodeCommentsUseCase(
 			nodeRepository,
 			nodeCommentRepository,
-			groupUsrRepository)
+			accessChecker)
 	createNodeComment := usecase.
 		NewCreateNodeCommentUseCase(
 			nodeRepository,
 			nodeCommentRepository,
-			groupUsrRepository,
-			lg)
+			lg,
+			accessChecker)
 	updateNodeComment := usecase.
 		NewUpdateNodeCommentUseCase(
 			nodeCommentRepository)
 	deleteNodeComment := usecase.
 		NewDeleteNodeCommentUseCase(
-			nodeRepository,
-			nodeCommentRepository,
-			groupUsrRepository)
+			nodeCommentRepository)
 	// ROUTES
 	nodeCommentH := handler.
 		NewNodeCommentHandler(
@@ -327,23 +328,24 @@ func main() {
 		NewCreateDocUseCase(
 			docRepository,
 			nodeRepository,
-			groupUsrRepository,
 			unitOfWorkFactory,
 			storage,
-			lg)
+			lg,
+
+			accessChecker)
 	deleteDoc := usecase.
 		NewDeleteDocUseCase(
 			storage,
 			docRepository,
 			nodeRepository,
-			groupUsrRepository,
-			lg)
+			lg,
+			accessChecker)
 	downloadDoc := usecase.
 		NewDownloadDocUseCase(
 			nodeRepository,
 			docRepository,
-			groupUsrRepository,
-			storage)
+			storage,
+			accessChecker)
 
 	// ROUTES
 	docH := handler.

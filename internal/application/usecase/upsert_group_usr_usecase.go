@@ -10,12 +10,12 @@ import (
 )
 
 type UpsertGroupUsrUseCase struct {
-	accessChecker
+	*accessChecker
 	usrRepository domain.UsrRepository
 }
 
 func (uc *UpsertGroupUsrUseCase) Execute(ctx context.Context, groupID domain.GroupID, targetUsrID domain.UsrID, access domain.GroupUsrAccess) error {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func (uc *UpsertGroupUsrUseCase) Execute(ctx context.Context, groupID domain.Gro
 		return apperror.ErrForbidden(detail)
 	}
 
-	hasAccssOnGroup, err := uc.hasGroupAccessTo(ctx, usr, groupID, domain.GroupOwnerAccess)
+	hasAccssOnGroup, err := uc.checkGroupAccessTo(ctx, groupID, domain.GroupOwnerAccess)
 	if err != nil {
 		return err
 	}
@@ -69,10 +69,9 @@ func (uc *UpsertGroupUsrUseCase) Execute(ctx context.Context, groupID domain.Gro
 
 func NewUpsertGroupUsrUseCase(
 	ur domain.UsrRepository,
-	gur domain.GroupUsrRepository,
+	ac *accessChecker,
 ) *UpsertGroupUsrUseCase {
 	helper.NotNilOrPanic(ur, "UsrRepository")
-	helper.NotNilOrPanic(gur, "GroupUsrRepository")
-	ac := accessChecker{gur}
+	helper.NotNilOrPanic(ac, "accessChecker")
 	return &UpsertGroupUsrUseCase{ac, ur}
 }

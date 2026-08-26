@@ -10,11 +10,12 @@ import (
 )
 
 type UpdateGroupUseCase struct {
+	identityChecker
 	groupRepository domain.GroupRepository
 }
 
 func (uc *UpdateGroupUseCase) Execute(ctx context.Context, groupID domain.GroupID, args *dto.UpdateGroupDTO) (*domain.Group, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -53,5 +54,5 @@ func (uc *UpdateGroupUseCase) Execute(ctx context.Context, groupID domain.GroupI
 
 func NewUpdateGroupUseCase(gr domain.GroupRepository) *UpdateGroupUseCase {
 	helper.NotNilOrPanic(gr, "GroupRepository")
-	return &UpdateGroupUseCase{gr}
+	return &UpdateGroupUseCase{groupRepository: gr}
 }

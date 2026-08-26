@@ -10,13 +10,14 @@ import (
 )
 
 type GetRootNodesUseCase struct {
+	identityChecker
 	nodeRepository  domain.NodeRepository
 	groupRepository domain.GroupRepository
 	log             *slog.Logger
 }
 
 func (uc *GetRootNodesUseCase) Execute(ctx context.Context) ([]domain.Node, error) {
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,5 +60,9 @@ func NewGetRootNodesUseCase(
 	helper.NotNilOrPanic(gr, "GroupUsrRepository")
 	helper.NotNilOrPanic(mainLogger, "mainLogger")
 	log := mainLogger.With("usecase", "GetRootNodesUseCase")
-	return &GetRootNodesUseCase{nr, gr, log}
+	return &GetRootNodesUseCase{
+		nodeRepository:  nr,
+		groupRepository: gr,
+		log:             log,
+	}
 }

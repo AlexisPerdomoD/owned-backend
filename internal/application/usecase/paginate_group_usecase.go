@@ -9,6 +9,7 @@ import (
 )
 
 type PaginateGroupUseCase struct {
+	identityChecker
 	groupRepository domain.GroupRepository
 }
 
@@ -28,7 +29,7 @@ func (uc *PaginateGroupUseCase) Execute(
 		},
 	}
 
-	usr, err := getUsrIdentity(ctx)
+	usr, err := uc.getUsrIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -49,5 +50,5 @@ func NewPaginateGroupUseCase(
 	gr domain.GroupRepository,
 ) *PaginateGroupUseCase {
 	helper.NotNilOrPanic(gr, "GroupRepository")
-	return &PaginateGroupUseCase{gr}
+	return &PaginateGroupUseCase{groupRepository: gr}
 }
