@@ -2,12 +2,15 @@ import { createContext, onMount, useContext } from 'solid-js'
 import { createStore } from 'solid-js/store'
 
 import { apiGetMe, apiLogin, apiLogout } from '@/entities/usrs/api'
+import { getRoutesMap } from '@/shared/config/views'
 
 /**
  * @typedef {Object} AuthCtx
  * @property {Object} state
  * @property {import('@/entities/usrs').Usr | null} state.usr
  * @property {boolean} state.checked
+ * @property {Map<string, import('@/shared/config/views').Route>} state.routes
+ *
  *
  * @property {(credentials: import('@entities/usrs/api/login').LoginPwdDTO) => Promise<void>} loginPwd
  * @property {() => Promise<void>} logout
@@ -41,13 +44,30 @@ export function AuthProvider(props) {
      */
     const initialState = {
         usr: null,
-        checked: false
+        checked: false,
+        routes: new Map()
     }
 
     const [state, setState] = createStore(initialState)
 
+    let authCheckVersion = 0
+
     onMount(
-        () => apiGetMe().then(usr => setState({ usr, checked: true }))
+        () => {
+            const version = authCheckVersion
+
+            apiGetMe().then(usr => {
+                if (version !== authCheckVersion) {
+                    return
+                }
+
+                setState({
+                    usr,
+                    checked: true,
+                    routes: usr ? getRoutesMap(usr.role) : new Map()
+                })
+            })
+        }
         // TODO: check if here errors need to be handled
     )
 
@@ -58,7 +78,8 @@ export function AuthProvider(props) {
      */
     const loginPwd = sanitizedCredentials =>
         apiLogin(sanitizedCredentials).then(usr => {
-            setState({ usr, checked: true })
+            authCheckVersion += 1
+            setState({ usr, checked: true, routes: getRoutesMap(usr.role) })
             return usr
         })
     // TODO: check if here errors need to be handled
@@ -67,7 +88,7 @@ export function AuthProvider(props) {
         try {
             await apiLogout()
         } finally {
-            setState({ usr: null, checked: true })
+            setState({ usr: null, checked: true, routes: new Map() })
         }
     }
 

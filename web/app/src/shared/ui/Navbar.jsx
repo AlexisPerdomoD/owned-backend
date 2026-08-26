@@ -1,29 +1,30 @@
-import { useAuth } from '@/features/auth/providers/AuthProvider'
 import { Button } from '@/shared/ui'
 import { A, useLocation } from '@solidjs/router'
 
 /**
- * @type {object} NavItem
+ * @typedef {Object} Route
  * @property {string} path
  * @property {string} label
  * @property {string} icon
+ * @property {string[]} allowRoles
  */
 
 /**
  * @param {Object} props
  * @param {boolean} [props.collapsed]
- * @param {Array<NavItem>} [props.navItems]
+ * @param {Route[]} props.routes
+ * @param {string} props.username
+ * @param {() => Promise<void>} props.logout
  * @returns {import('solid-js').JSX.Element}
  */
 export function Navbar(props) {
     const location = useLocation()
-    const { state, logout } = useAuth()
 
     const isActive = path =>
         location.pathname === path || location.pathname.startsWith(path + '/')
 
     const handleLogout = () => {
-        logout().finally(() => {
+        props.logout().finally(() => {
             window.location.href = '/login'
         })
     }
@@ -40,7 +41,7 @@ export function Navbar(props) {
             <div
                 class={`flex items-center gap-1 ${props.collapsed ? 'flex-col' : ''}`}
             >
-                {props.navItems?.map(item => (
+                {props.routes.map(item => (
                     <A
                         href={item.path}
                         class={`
@@ -62,7 +63,7 @@ export function Navbar(props) {
 
             <div class="flex items-center gap-3">
                 <span class="text-sm text-muted">
-                    {props.collapsed ? '' : state.usr?.username}
+                    {props.collapsed ? '' : props.username}
                 </span>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>
                     {props.collapsed ? '↩' : 'Logout'}

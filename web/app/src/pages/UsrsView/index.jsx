@@ -65,8 +65,8 @@ export function UsrsView() {
     return (
         <section class="flex flex-col p-6">
             <PageHeader
-                title="Usrs"
-                subtitle="Manage users."
+                title="Manage Users"
+                subtitle="Manage users and their roles on the system."
                 actions={
                     <Button onClick={() => setShowForm(true)}>
                         + New User

@@ -11,8 +11,11 @@ export { Select, Textarea, Checkbox } from './Form'
 // ─── Navegación ──────────────────────────────────────────────────────────────
 export { Tabs, Breadcrumb } from './Navigation'
 
+// --- NavBar
+export { Navbar } from './Navbar'
+
 // ─── Layout ──────────────────────────────────────────────────────────────────
-export { AppShell, NavItem, PageHeader } from './Layout'
+export { AppShell, PageHeader } from './Layout'
 
 // ─── Datos ───────────────────────────────────────────────────────────────────
 export { Table, Pagination } from './Table'

@@ -1,6 +1,6 @@
 import { ErrorBoundary, render } from 'solid-js/web'
 
-import { ProtectedRoute } from '@features/auth/ui/ProtectedRoute'
+import { EnsureAuthenticateRoute } from '@features/auth/ui/EnsureAuthenticateRoute'
 import { GroupView } from '@pages/GroupView'
 import { GroupsView } from '@pages/GroupsView'
 import { HomeView } from '@pages/HomeView'
@@ -9,21 +9,20 @@ import { NotFoundView } from '@pages/NotFoundView'
 import { UsrsView } from '@pages/UsrsView'
 import { Navigate, Route, Router } from '@solidjs/router'
 
-import { AuthProvider } from './features/auth/providers/AuthProvider'
+import { AuthProvider, useAuth } from './features/auth/providers/AuthProvider'
 import './index.css'
 import { NodeView } from './pages/NodeView'
-import { ErrView, Toaster } from './shared/ui'
-import { Navbar } from './shared/ui/Navbar'
+import { ErrView, Navbar, Toaster } from './shared/ui'
 
 function ProtectedLayout(props) {
+    const { state, logout } = useAuth()
+
     return (
         <section class="flex flex-col h-screen">
             <Navbar
-                navItems={[
-                    { path: '/nodes', label: 'Files', icon: '📁' },
-                    { path: '/groups', label: 'Groups', icon: '👥' },
-                    { path: '/usrs', label: 'Users', icon: '👤' }
-                ]}
+                routes={Array.from(state.routes.values())}
+                username={state.usr.username}
+                logout={logout}
             />
             <main class="flex-1 overflow-y-auto bg-bg">{props.children}</main>
         </section>
@@ -44,21 +43,21 @@ export function App() {
                         <Route
                             path="/"
                             component={() => (
-                                <ProtectedRoute>
+                                <EnsureAuthenticateRoute>
                                     <ProtectedLayout>
                                         <HomeView />
                                     </ProtectedLayout>
-                                </ProtectedRoute>
+                                </EnsureAuthenticateRoute>
                             )}
                         />
                         <Route
                             path="/:id"
                             component={() => (
-                                <ProtectedRoute>
+                                <EnsureAuthenticateRoute>
                                     <ProtectedLayout>
                                         <NodeView />
                                     </ProtectedLayout>
-                                </ProtectedRoute>
+                                </EnsureAuthenticateRoute>
                             )}
                         />
                     </Route>
@@ -66,42 +65,42 @@ export function App() {
                         <Route
                             path="/"
                             component={() => (
-                                <ProtectedRoute>
+                                <EnsureAuthenticateRoute>
                                     <ProtectedLayout>
                                         <GroupsView />
                                     </ProtectedLayout>
-                                </ProtectedRoute>
+                                </EnsureAuthenticateRoute>
                             )}
                         />
                         <Route
                             path="/:id"
                             component={() => (
-                                <ProtectedRoute>
+                                <EnsureAuthenticateRoute>
                                     <ProtectedLayout>
                                         <GroupView />
                                     </ProtectedLayout>
-                                </ProtectedRoute>
+                                </EnsureAuthenticateRoute>
                             )}
                         />
                     </Route>
                     <Route
                         path="/usrs"
                         component={() => (
-                            <ProtectedRoute>
+                            <EnsureAuthenticateRoute>
                                 <ProtectedLayout>
                                     <UsrsView />
                                 </ProtectedLayout>
-                            </ProtectedRoute>
+                            </EnsureAuthenticateRoute>
                         )}
                     />
                     <Route
                         path="*"
                         component={() => (
-                            <ProtectedRoute>
+                            <EnsureAuthenticateRoute>
                                 <ProtectedLayout>
                                     <NotFoundView />
                                 </ProtectedLayout>
-                            </ProtectedRoute>
+                            </EnsureAuthenticateRoute>
                         )}
                     />
                 </Router>
